@@ -1,12 +1,11 @@
 fastapi
 uvicorn
-langchain
-langchain-community
-langchain-text-splitters
-chromadb
-sentence-transformers
-pypdf
 python-dotenv
 httpx
 anthropic
 requests
+pypdf
+langchain
+langchain-community
+langchain-text-splitters
+chromadb
