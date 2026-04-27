@@ -1,8 +1,8 @@
 from pathlib import Path
-from chromadb.utils import embedding_functions
 from langchain_community.document_loaders import PyPDFLoader
 from langchain_text_splitters import RecursiveCharacterTextSplitter
 from langchain_community.vectorstores import Chroma
+from langchain_community.embeddings import HuggingFaceEmbeddings
 
 
 class MaterialMedicaRAG:
@@ -12,7 +12,10 @@ class MaterialMedicaRAG:
         self.vectorstore = None
 
         print("Loading embedding model...")
-        self.embeddings = embedding_functions.DefaultEmbeddingFunction()
+        self.embeddings = HuggingFaceEmbeddings(
+            model_name="all-MiniLM-L6-v2",
+            model_kwargs={"device": "cpu"},
+        )
         print("✅ Embedding model ready")
 
     def index(self):
