@@ -1,8 +1,8 @@
 import os
 import json
-from datetime import datetime
 import httpx
 from pathlib import Path
+from datetime import datetime
 from contextlib import asynccontextmanager
 
 from fastapi import FastAPI, HTTPException
@@ -16,30 +16,18 @@ from rag import MaterialMedicaRAG
 load_dotenv()
 
 # ── Paths ──────────────────────────────────────────────────────────────────
-BASE_DIR  = Path(__file__).parent.parent
-PDF_PATHS = [
+BASE_DIR      = Path(__file__).parent.parent
+PDF_PATHS     = [
     BASE_DIR / "data" / "The_Material_Medica_of_Narayani_Combination_Remedies.pdf",
     BASE_DIR / "data" / "robin_murphy_searchable.pdf",
 ]
-DB_PATH   = str(BASE_DIR / "data" / "chroma_db")
-FRONT_DIR = str(BASE_DIR / "frontend")
-MEMORY_FILE = BASE_DIR / "data" / "conversations.json"
-
-def save_conversation(messages: list, response: str):
-    entry = {
-        "timestamp": datetime.now().isoformat(),
-        "messages": [{"role": m.role, "content": m.content} for m in messages],
-        "response": response
-    }
-    conversations = []
-    if MEMORY_FILE.exists():
-        with open(MEMORY_FILE, "r") as f:
-            conversations = json.load(f)
-    conversations.append(entry)
-    with open(MEMORY_FILE, "w") as f:
-        json.dump(conversations, f, indent=2)
-OLLAMA_URL = "http://localhost:11434/api/chat"
-MODEL     = "llama3"
+DB_PATH       = str(BASE_DIR / "data" / "chroma_db")
+FRONT_DIR     = str(BASE_DIR / "frontend")
+MEMORY_FILE   = BASE_DIR / "data" / "conversations.json"
+OLLAMA_URL    = "http://localhost:11434/api/chat"
+MODEL         = "llama3"
+USE_ANTHROPIC = os.getenv("USE_ANTHROPIC", "false").lower() == "true"
+ANTHROPIC_KEY = os.getenv("ANTHROPIC_API_KEY", "")
 
 # ── System Prompt ──────────────────────────────────────────────────────────
 SYSTEM_PROMPT = """You are a warm, knowledgeable homeopathic consultant with deep 
@@ -55,11 +43,28 @@ When answering:
 - When recommending combination remedies alongside classical single remedies, 
   mention both options — when referencing Narayani combination remedies specifically, 
   always credit them as "Narayani [remedy name]" to distinguish them from classical single remedies
+- Keep responses focused and practical — the client wants guidance, not a lecture
 - Never cite sources, never say where information comes from, never mention book names — speak naturally as a knowledgeable practitioner
+- NEVER use the words "Material Medica", "Materia Medica", or any book title in your response under any circumstances
 
 DISCLAIMER: Always include a gentle reminder that recommendations are for educational 
 purposes, complement but do not replace professional medical care, and that serious 
 or urgent symptoms require immediate medical attention."""
+
+# ── Memory ─────────────────────────────────────────────────────────────────
+def save_conversation(messages: list, response: str):
+    entry = {
+        "timestamp": datetime.now().isoformat(),
+        "messages": [{"role": m.role, "content": m.content} for m in messages],
+        "response": response
+    }
+    conversations = []
+    if MEMORY_FILE.exists():
+        with open(MEMORY_FILE, "r") as f:
+            conversations = json.load(f)
+    conversations.append(entry)
+    with open(MEMORY_FILE, "w") as f:
+        json.dump(conversations, f, indent=2)
 
 # ── RAG ────────────────────────────────────────────────────────────────────
 rag = MaterialMedicaRAG([str(p) for p in PDF_PATHS], DB_PATH)
@@ -71,13 +76,12 @@ async def lifespan(app: FastAPI):
     else:
         if not any(p.exists() for p in PDF_PATHS):
             print("⚠️  No PDFs found in data/ folder")
-            print("   Place your PDFs in the data/ folder and restart.")
         else:
             rag.index()
     yield
 
 # ── App ────────────────────────────────────────────────────────────────────
-app = FastAPI(title="Materia Medica AI", lifespan=lifespan)
+app = FastAPI(title="Logos AI", lifespan=lifespan)
 
 app.add_middleware(
     CORSMiddleware,
@@ -104,7 +108,7 @@ class CoughRequest(BaseModel):
 # ── Routes ─────────────────────────────────────────────────────────────────
 @app.get("/api/health")
 async def health():
-    return {"status": "ok", "model": MODEL}
+    return {"status": "ok", "model": "anthropic" if USE_ANTHROPIC else MODEL}
 
 
 @app.post("/api/chat")
@@ -113,24 +117,33 @@ async def chat(req: ChatRequest):
         (m.content for m in reversed(req.messages) if m.role == "user"), ""
     )
     context = rag.search(last_user, k=4)
-
     system = SYSTEM_PROMPT
     if context:
-       system += f"\n\n═══ RELEVANT KNOWLEDGE ═══\n\n{context}\n\n═══════════════════════════════════════════════════"
-
-    ollama_messages = [{"role": "system", "content": system}]
-    ollama_messages += [{"role": m.role, "content": m.content} for m in req.messages]
+        system += f"\n\n═══ RELEVANT KNOWLEDGE ═══\n\n{context}\n\n═══════════════════════════════════════════════════"
 
     try:
-        async with httpx.AsyncClient(timeout=120.0) as client:
-            response = await client.post(
-                OLLAMA_URL,
-                json={"model": MODEL, "messages": ollama_messages, "stream": False},
+        if USE_ANTHROPIC:
+            import anthropic
+            ac = anthropic.Anthropic(api_key=ANTHROPIC_KEY)
+            response = ac.messages.create(
+                model="claude-sonnet-4-20250514",
+                max_tokens=1000,
+                system=system,
+                messages=[{"role": m.role, "content": m.content} for m in req.messages]
             )
-            data = response.json()
-            reply = data["message"]["content"]
-            save_conversation(req.messages, reply)
-            return {"content": [{"text": reply}]}
+            reply = response.content[0].text
+        else:
+            ollama_messages = [{"role": "system", "content": system}]
+            ollama_messages += [{"role": m.role, "content": m.content} for m in req.messages]
+            async with httpx.AsyncClient(timeout=120.0) as client:
+                response = await client.post(
+                    OLLAMA_URL,
+                    json={"model": MODEL, "messages": ollama_messages, "stream": False},
+                )
+                data = response.json()
+                reply = data["message"]["content"]
+        save_conversation(req.messages, reply)
+        return {"content": [{"text": reply}]}
     except httpx.ConnectError:
         raise HTTPException(
             status_code=503,
@@ -160,24 +173,35 @@ Based on these acoustic characteristics:
 3. Two follow-up questions to refine the recommendation"""
 
     try:
-        async with httpx.AsyncClient(timeout=120.0) as client:
-            response = await client.post(
-                OLLAMA_URL,
-                json={
-                    "model": MODEL,
-                    "messages": [
-                        {"role": "system", "content": system},
-                        {"role": "user", "content": prompt},
-                    ],
-                    "stream": False,
-                },
+        if USE_ANTHROPIC:
+            import anthropic
+            ac = anthropic.Anthropic(api_key=ANTHROPIC_KEY)
+            response = ac.messages.create(
+                model="claude-sonnet-4-20250514",
+                max_tokens=1000,
+                system=system,
+                messages=[{"role": "user", "content": prompt}]
             )
-            data = response.json()
-            return {"content": [{"text": data["message"]["content"]}]}
+            reply = response.content[0].text
+        else:
+            ollama_messages = [
+                {"role": "system", "content": system},
+                {"role": "user", "content": prompt},
+            ]
+            async with httpx.AsyncClient(timeout=120.0) as client:
+                response = await client.post(
+                    OLLAMA_URL,
+                    json={"model": MODEL, "messages": ollama_messages, "stream": False},
+                )
+                data = response.json()
+                reply = data["message"]["content"]
+        return {"content": [{"text": reply}]}
     except httpx.ConnectError:
         raise HTTPException(status_code=503, detail="Ollama is not running.")
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
-    # ── Serve frontend (must be last) ──────────────────────────────────────────
+
+
+# ── Serve frontend (must be last) ──────────────────────────────────────────
 if Path(FRONT_DIR).exists():
     app.mount("/", StaticFiles(directory=FRONT_DIR, html=True), name="frontend")
