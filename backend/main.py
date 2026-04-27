@@ -39,7 +39,7 @@ def save_conversation(messages: list, response: str):
     with open(MEMORY_FILE, "w") as f:
         json.dump(conversations, f, indent=2)
 OLLAMA_URL = "http://localhost:11434/api/chat"
-MODEL     = "mistral"
+MODEL     = "llama3"
 
 # ── System Prompt ──────────────────────────────────────────────────────────
 SYSTEM_PROMPT = """You are a warm, knowledgeable homeopathic consultant with deep 
@@ -178,3 +178,6 @@ Based on these acoustic characteristics:
         raise HTTPException(status_code=503, detail="Ollama is not running.")
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
+    # ── Serve frontend (must be last) ──────────────────────────────────────────
+if Path(FRONT_DIR).exists():
+    app.mount("/", StaticFiles(directory=FRONT_DIR, html=True), name="frontend")
