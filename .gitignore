@@ -1,0 +1,13 @@
+# Data files - too large for GitHub
+data/chroma_db/
+data/*.pdf
+data/conversations.json
+
+# Python
+__pycache__/
+*.pyc
+.venv/
+
+# Environment
+.env
+.DS_Store

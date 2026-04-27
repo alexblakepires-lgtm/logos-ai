@@ -1,0 +1,687 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Materia Medica — Homeopathic Consultant</title>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/7.23.5/babel.min.js"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,600;1,300;1,400&family=Josefin+Sans:wght@200;300;400&display=swap" rel="stylesheet">
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --cream: #f5f0e8; --parchment: #ede4d0; --ink: #1a1208;
+      --forest: #2c4a2e; --sage: #5a7a5c; --moss: #3d5c3e;
+      --gold: #b8922a; --amber: #c9a84c; --rust: #8b3a2a;
+      --muted: #7a6e5f; --border: rgba(90,122,92,0.3);
+    }
+    html, body, #root { height: 100%; }
+    body { background: var(--cream); font-family: 'Josefin Sans', sans-serif; color: var(--ink); }
+    .app { display: flex; flex-direction: column; height: 100vh; background: var(--cream);
+      background-image: radial-gradient(ellipse at 10% 20%, rgba(90,122,92,0.08) 0%, transparent 50%),
+        radial-gradient(ellipse at 90% 80%, rgba(184,146,42,0.06) 0%, transparent 50%); }
+    .header { background: linear-gradient(135deg, #1e3520 0%, #2c4a2e 50%, #1e3520 100%);
+      padding: 18px 32px; flex-shrink: 0; }
+    .header-inner { max-width: 800px; margin: 0 auto; display: flex; align-items: center; gap: 14px; }
+    .brand-icon { width: 42px; height: 42px; background: rgba(184,146,42,0.2);
+      border: 1px solid rgba(184,146,42,0.5); border-radius: 50%; display: flex;
+      align-items: center; justify-content: center; font-size: 20px; flex-shrink: 0; }
+    .brand-name { font-family: 'Cormorant Garamond', serif; font-size: 26px; font-weight: 300;
+      color: var(--cream); letter-spacing: 2px; line-height: 1; }
+    .brand-sub { font-size: 10px; letter-spacing: 3px; color: var(--amber); text-transform: uppercase; margin-top: 3px; }
+    .tabs { display: flex; background: var(--parchment); border-bottom: 2px solid var(--border); flex-shrink: 0; }
+    .tabs-inner { max-width: 800px; width: 100%; margin: 0 auto; display: flex; }
+    .tab { flex: 1; padding: 13px 20px; background: none; border: none; cursor: pointer;
+      font-family: 'Josefin Sans', sans-serif; font-size: 11px; letter-spacing: 2px;
+      text-transform: uppercase; color: var(--muted); border-bottom: 2px solid transparent;
+      margin-bottom: -2px; transition: all 0.2s; }
+    .tab:hover { color: var(--forest); }
+    .tab.active { color: var(--forest); border-bottom-color: var(--gold); font-weight: 400; }
+    .main { flex: 1; overflow: hidden; display: flex; flex-direction: column; }
+    .panel { max-width: 800px; width: 100%; margin: 0 auto; flex: 1;
+      display: flex; flex-direction: column; overflow: hidden; }
+
+    /* ── CHAT ── */
+    .chat-area { display: flex; flex-direction: column; flex: 1; overflow: hidden; }
+    .messages { flex: 1; overflow-y: auto; padding: 20px 24px; display: flex;
+      flex-direction: column; gap: 16px; scrollbar-width: thin; scrollbar-color: var(--border) transparent; }
+    .msg { display: flex; gap: 12px; animation: fadeUp 0.3s ease; }
+    @keyframes fadeUp { from { opacity:0; transform:translateY(8px); } to { opacity:1; transform:translateY(0); } }
+    .msg.user { flex-direction: row-reverse; }
+    .avatar { width: 34px; height: 34px; border-radius: 50%; display: flex; align-items: center;
+      justify-content: center; font-size: 16px; flex-shrink: 0; margin-top: 2px; }
+    .msg.assistant .avatar { background: var(--forest); }
+    .msg.user .avatar { background: var(--parchment); border: 1px solid var(--border); }
+    .bubble { max-width: 78%; padding: 14px 18px; line-height: 1.75; font-size: 14px; letter-spacing: 0.3px; }
+    .msg.assistant .bubble { background: #fff; border: 1px solid var(--border);
+      border-radius: 2px 16px 16px 16px; box-shadow: 0 2px 8px rgba(44,74,46,0.06); }
+    .msg.user .bubble { background: var(--forest); color: var(--cream); border-radius: 16px 2px 16px 16px; }
+
+    /* Markdown inside bubbles */
+    .bubble strong { color: var(--gold); font-weight: 600; }
+    .msg.user .bubble strong { color: var(--amber); }
+    .bubble em { font-style: italic; color: var(--sage); }
+    .bubble ul { margin: 8px 0 8px 18px; }
+    .bubble ol { margin: 8px 0 8px 18px; }
+    .bubble li { margin: 4px 0; line-height: 1.6; }
+    .bubble p { margin: 6px 0; }
+    .bubble p:first-child { margin-top: 0; }
+    .bubble p:last-child { margin-bottom: 0; }
+    .bubble h3 { font-family: 'Cormorant Garamond', serif; font-size: 17px; color: var(--forest);
+      font-weight: 400; margin: 10px 0 4px; }
+    .bubble blockquote { border-left: 2px solid var(--gold); padding-left: 10px;
+      color: var(--muted); font-style: italic; margin: 8px 0; }
+    .bubble hr { border: none; border-top: 1px solid var(--border); margin: 10px 0; }
+    .bubble code { background: var(--parchment); padding: 1px 5px; border-radius: 3px;
+      font-family: monospace; font-size: 12px; }
+
+    .disclaimer { font-size: 11px; color: var(--muted); font-style: italic; margin-top: 8px;
+      padding: 7px 12px; background: rgba(184,146,42,0.08);
+      border-left: 2px solid var(--gold); border-radius: 0 4px 4px 0; }
+
+    .quick-chips { display: flex; flex-wrap: wrap; gap: 7px; padding: 12px 24px 4px; flex-shrink: 0; }
+    .chip { background: #fff; border: 1px solid var(--border); border-radius: 20px;
+      padding: 5px 13px; font-size: 11px; letter-spacing: 0.5px; color: var(--forest);
+      cursor: pointer; transition: all 0.2s; font-family: 'Josefin Sans', sans-serif; }
+    .chip:hover { background: var(--parchment); border-color: var(--sage); }
+
+    .input-row { padding: 12px 24px 16px; background: var(--parchment);
+      border-top: 1px solid var(--border); display: flex; gap: 10px; flex-shrink: 0; }
+    .input-wrap { flex: 1; }
+    textarea { width: 100%; padding: 11px 15px; background: #fff; border: 1px solid var(--border);
+      border-radius: 8px; font-family: 'Josefin Sans', sans-serif; font-size: 13px;
+      color: var(--ink); outline: none; resize: none; min-height: 44px; max-height: 120px;
+      line-height: 1.5; transition: border-color 0.2s; letter-spacing: 0.3px; }
+    textarea:focus { border-color: var(--sage); }
+    textarea::placeholder { color: var(--muted); }
+    .send-btn { padding: 0 20px; background: var(--forest); color: var(--cream); border: none;
+      border-radius: 8px; cursor: pointer; font-family: 'Josefin Sans', sans-serif;
+      font-size: 11px; letter-spacing: 2px; text-transform: uppercase; min-width: 78px;
+      transition: background 0.2s; }
+    .send-btn:hover:not(:disabled) { background: var(--moss); }
+    .send-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+
+    /* Typing dots */
+    .dots span { animation: blink 1.4s infinite; font-size: 18px; color: var(--sage); }
+    .dots span:nth-child(2) { animation-delay: 0.2s; }
+    .dots span:nth-child(3) { animation-delay: 0.4s; }
+    @keyframes blink { 0%,80%,100%{opacity:0.2;} 40%{opacity:1;} }
+
+    /* ── COUGH PANEL ── */
+    .cough-panel { flex: 1; overflow-y: auto; padding: 20px 24px; display: flex;
+      flex-direction: column; gap: 18px; }
+    .card { background: #fff; border: 1px solid var(--border); border-radius: 12px;
+      padding: 22px; box-shadow: 0 2px 12px rgba(44,74,46,0.06); }
+    .card h3 { font-family: 'Cormorant Garamond', serif; font-size: 22px; font-weight: 400;
+      color: var(--forest); margin-bottom: 6px; }
+    .card p { font-size: 12px; color: var(--muted); letter-spacing: 0.5px; line-height: 1.6; margin-bottom: 18px; }
+    .recorder-area { background: var(--parchment); border: 1px dashed var(--border);
+      border-radius: 8px; padding: 24px; display: flex; flex-direction: column;
+      align-items: center; gap: 14px; }
+    .rec-btn { width: 76px; height: 76px; border-radius: 50%; border: 3px solid var(--forest);
+      background: #fff; cursor: pointer; display: flex; align-items: center;
+      justify-content: center; font-size: 30px; transition: all 0.2s; }
+    .rec-btn:hover { background: var(--parchment); transform: scale(1.05); }
+    .rec-btn.recording { border-color: var(--rust); background: rgba(139,58,42,0.08);
+      animation: pulse 1.5s infinite; }
+    @keyframes pulse { 0%,100%{box-shadow:0 0 0 0 rgba(139,58,42,0.3);} 50%{box-shadow:0 0 0 14px rgba(139,58,42,0);} }
+    .rec-label { font-size: 11px; letter-spacing: 2px; text-transform: uppercase; color: var(--muted); }
+    .rec-timer { font-family: 'Cormorant Garamond', serif; font-size: 34px; color: var(--rust); font-weight: 300; }
+    .waveform { width: 100%; height: 52px; display: flex; align-items: center;
+      justify-content: center; gap: 3px; background: rgba(255,255,255,0.5); border-radius: 6px; padding: 6px 10px; }
+    .bar { width: 3px; background: var(--sage); border-radius: 2px; transition: height 0.05s; min-height: 3px; }
+    .divider { text-align: center; font-size: 11px; color: var(--muted); letter-spacing: 2px; padding: 4px 0; }
+    .upload-zone { border: 1px dashed var(--border); border-radius: 8px; padding: 18px;
+      text-align: center; cursor: pointer; transition: all 0.2s; background: #fff; }
+    .upload-zone:hover { border-color: var(--sage); background: var(--parchment); }
+    .upload-zone p { margin: 0; font-size: 12px; color: var(--muted); letter-spacing: 0.5px; }
+    audio { width: 100%; border-radius: 6px; margin-top: 10px; }
+    .metrics { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin: 14px 0; }
+    .metric { background: var(--parchment); border-radius: 8px; padding: 12px; text-align: center; }
+    .metric-val { font-family: 'Cormorant Garamond', serif; font-size: 22px; color: var(--forest); font-weight: 300; }
+    .metric-label { font-size: 9px; letter-spacing: 1.5px; text-transform: uppercase; color: var(--muted); margin-top: 2px; }
+    .analyze-btn { width: 100%; padding: 13px; background: var(--forest); color: var(--cream);
+      border: none; border-radius: 8px; cursor: pointer; font-family: 'Josefin Sans', sans-serif;
+      font-size: 11px; letter-spacing: 3px; text-transform: uppercase; transition: background 0.2s; }
+    .analyze-btn:hover:not(:disabled) { background: var(--moss); }
+    .analyze-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+    .result-card { background: linear-gradient(135deg, rgba(44,74,46,0.05), rgba(184,146,42,0.05));
+      border: 1px solid var(--border); border-radius: 12px; padding: 20px; animation: fadeUp 0.4s ease; }
+    .result-card h4 { font-family: 'Cormorant Garamond', serif; font-size: 20px; font-weight: 400;
+      color: var(--forest); margin-bottom: 10px; }
+    .result-text { font-size: 13px; line-height: 1.8; color: var(--ink); }
+    .result-text strong { color: var(--gold); font-weight: 600; }
+    .result-text ul { margin: 8px 0 8px 18px; }
+    .result-text li { margin: 4px 0; }
+    .result-text p { margin: 6px 0; }
+    .tags { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 12px; }
+    .tag { padding: 3px 10px; border-radius: 20px; font-size: 11px; letter-spacing: 0.5px;
+      background: rgba(90,122,92,0.12); color: var(--forest); }
+    .chat-btn { width: 100%; margin-top: 14px; padding: 12px; background: var(--gold);
+      color: #fff; border: none; border-radius: 8px; cursor: pointer;
+      font-family: 'Josefin Sans', sans-serif; font-size: 11px; letter-spacing: 3px;
+      text-transform: uppercase; transition: background 0.2s; }
+    .chat-btn:hover { background: var(--amber); }
+    .error-box { padding: 12px 16px; background: rgba(139,58,42,0.08);
+      border: 1px solid rgba(139,58,42,0.3); border-radius: 8px;
+      font-size: 12px; color: var(--rust); margin-top: 8px; }
+    .perm-note { font-size: 11px; color: var(--muted); text-align: center; padding: 4px; }
+  </style>
+</head>
+<body>
+<div id="root"></div>
+
+<script type="text/babel">
+const { useState, useRef, useEffect, useCallback } = React;
+
+// ── System Prompt ─────────────────────────────────────────────────────────
+const SYSTEM = `You are a knowledgeable homeopathic consultant specializing in the classical Material Medica. Help clients understand homeopathic remedies based on their symptoms.
+
+COUGH & RESPIRATORY REMEDIES:
+- Aconitum Napellus: Sudden onset, dry barking cough, worse at night/cold wind, anxiety
+- Bryonia Alba: Dry hard painful cough, worse movement, must hold chest, very thirsty
+- Drosera: Violent spasmodic cough like whooping cough, worse lying down/after midnight
+- Spongia Tosta: Croup cough barking like a saw, worse before midnight, better warm drinks
+- Hepar Sulphuris: Loose rattling cough, worse cold air, chilly and irritable
+- Phosphorus: Hard dry cough, worse cold air/talking/laughing, tickle in throat, hoarse
+- Rumex Crispus: Tickling cough from pit of throat, worse cold air and uncovering
+- Antimonium Tartaricum: Rattling mucus hard to raise, worse 3-4am, drowsy
+- Pulsatilla: Loose cough in day/dry at night, worse warm rooms, better open air, weepy
+- Ipecacuanha: Cough with nausea, rattling, suffocative spasms
+- Natrum Muriaticum: Cough with tears, white mucus, worse 10am, grief-related
+- Causticum: Hoarse cough, can't clear mucus, leaking urine on cough, worse cold dry air
+- Kali Bichromicum: Stringy yellow-green mucus, postnasal drip cough, worse morning
+
+COUGH TYPES → REMEDIES:
+- Dry/barking → Aconite, Belladonna, Spongia, Phosphorus
+- Loose/rattling → Antimonium Tart, Hepar Sulph, Pulsatilla
+- Spasmodic/paroxysmal → Drosera, Ipecac, Cuprum
+- Croup → Drosera, Spongia, Hepar Sulph
+- Tickling → Rumex, Phosphorus, Natrum Mur
+- Worse nights → Drosera, Hepar, Chamomilla
+- Better warm drinks → Spongia, Rhus Tox
+
+You also know remedies for fevers, digestive issues, anxiety, grief, headaches, skin, children's ailments.
+
+RESPONSE FORMAT:
+- Use **bold** for remedy names
+- Use bullet points for lists of symptoms
+- Use numbered lists for ranked recommendations
+- Ask follow-up questions about modalities (better/worse), time of day, emotional state
+
+DISCLAIMER: Always note that recommendations are educational, complement but don't replace medical care, and that serious conditions require professional evaluation.`;
+
+// ── Markdown Parser ────────────────────────────────────────────────────────
+function parseMarkdown(text) {
+  const lines = text.split('\n');
+  const elements = [];
+  let i = 0;
+  let key = 0;
+
+  const inlineFormat = (str) => {
+    const parts = [];
+    let remaining = str;
+    let k = 0;
+    while (remaining.length > 0) {
+      const boldMatch = remaining.match(/\*\*(.+?)\*\*/);
+      const italicMatch = remaining.match(/\*(.+?)\*/);
+      const firstBold = boldMatch ? remaining.indexOf(boldMatch[0]) : Infinity;
+      const firstItalic = italicMatch ? remaining.indexOf(italicMatch[0]) : Infinity;
+      if (boldMatch && firstBold <= firstItalic) {
+        if (firstBold > 0) parts.push(remaining.slice(0, firstBold));
+        parts.push(<strong key={k++}>{boldMatch[1]}</strong>);
+        remaining = remaining.slice(firstBold + boldMatch[0].length);
+      } else if (italicMatch && firstItalic < Infinity) {
+        if (firstItalic > 0) parts.push(remaining.slice(0, firstItalic));
+        parts.push(<em key={k++}>{italicMatch[1]}</em>);
+        remaining = remaining.slice(firstItalic + italicMatch[0].length);
+      } else {
+        parts.push(remaining);
+        break;
+      }
+    }
+    return parts;
+  };
+
+  while (i < lines.length) {
+    const line = lines[i];
+    if (line.trim() === '' || line === '---') {
+      if (line === '---') elements.push(<hr key={key++} />);
+      i++; continue;
+    }
+    // Heading
+    if (line.startsWith('### ')) {
+      elements.push(<h3 key={key++}>{inlineFormat(line.slice(4))}</h3>); i++; continue;
+    }
+    if (line.startsWith('## ')) {
+      elements.push(<h3 key={key++}>{inlineFormat(line.slice(3))}</h3>); i++; continue;
+    }
+    // Blockquote
+    if (line.startsWith('> ')) {
+      elements.push(<blockquote key={key++}>{inlineFormat(line.slice(2))}</blockquote>); i++; continue;
+    }
+    // Unordered list
+    if (line.match(/^[-*] /)) {
+      const items = [];
+      while (i < lines.length && lines[i].match(/^[-*] /)) {
+        items.push(<li key={i}>{inlineFormat(lines[i].slice(2))}</li>);
+        i++;
+      }
+      elements.push(<ul key={key++}>{items}</ul>);
+      continue;
+    }
+    // Ordered list
+    if (line.match(/^\d+\. /)) {
+      const items = [];
+      while (i < lines.length && lines[i].match(/^\d+\. /)) {
+        items.push(<li key={i}>{inlineFormat(lines[i].replace(/^\d+\. /, ''))}</li>);
+        i++;
+      }
+      elements.push(<ol key={key++}>{items}</ol>);
+      continue;
+    }
+    // Regular paragraph
+    elements.push(<p key={key++}>{inlineFormat(line)}</p>);
+    i++;
+  }
+  return elements;
+}
+
+// ── Audio Analysis ─────────────────────────────────────────────────────────
+function analyzeAudio(audioBuffer) {
+  const ch = audioBuffer.getChannelData(0);
+  const sr = audioBuffer.sampleRate;
+  const dur = audioBuffer.duration;
+
+  let sumSq = 0, peak = 0;
+  for (let i = 0; i < ch.length; i++) {
+    sumSq += ch[i] ** 2;
+    if (Math.abs(ch[i]) > peak) peak = Math.abs(ch[i]);
+  }
+  const rms = Math.sqrt(sumSq / ch.length);
+
+  let cross = 0;
+  for (let i = 1; i < ch.length; i++) {
+    if ((ch[i] >= 0) !== (ch[i - 1] >= 0)) cross++;
+  }
+  const zcr = cross / ch.length;
+
+  const frame = Math.floor(sr * 0.05);
+  const energies = [];
+  for (let i = 0; i + frame < ch.length; i += frame) {
+    let e = 0;
+    for (let j = 0; j < frame; j++) e += ch[i + j] ** 2;
+    energies.push(e / frame);
+  }
+  const threshold = Math.max(...energies) * 0.1;
+  let bursts = 0, inBurst = false;
+  for (const e of energies) {
+    if (e > threshold && !inBurst) { bursts++; inBurst = true; }
+    else if (e <= threshold) inBurst = false;
+  }
+
+  // Spectral centroid (simplified)
+  const N = Math.min(2048, ch.length);
+  let wSum = 0, mag = 0;
+  for (let k = 1; k < N / 4; k++) {
+    let re = 0, im = 0;
+    for (let n = 0; n < N; n++) {
+      const a = (2 * Math.PI * k * n) / N;
+      re += (ch[n] || 0) * Math.cos(a);
+      im -= (ch[n] || 0) * Math.sin(a);
+    }
+    const m = Math.sqrt(re * re + im * im);
+    wSum += (k * sr / N) * m;
+    mag += m;
+  }
+  const centroid = mag > 0 ? wSum / mag : 500;
+
+  const traits = [];
+  if (zcr > 0.15) traits.push("high-pitched or dry quality");
+  else traits.push("lower-pitched, possibly moist quality");
+  if (bursts > 3) traits.push(`repetitive paroxysmal pattern (${bursts} bursts)`);
+  else if (bursts === 1) traits.push("single cough impulse");
+  else traits.push(`${bursts} cough bursts`);
+  if (rms > 0.08) traits.push("forceful/strong intensity");
+  else if (rms < 0.02) traits.push("weak or suppressed intensity");
+  else traits.push("moderate intensity");
+  if (dur > 3) traits.push(`prolonged episode (${dur.toFixed(1)}s)`);
+  else traits.push(`brief episode (${dur.toFixed(1)}s)`);
+  if (centroid > 1500) traits.push("bright dry spectral character");
+  else traits.push("lower spectral energy (possibly wet/rattling)");
+
+  return { dur: dur.toFixed(1), rms: rms.toFixed(3), bursts, centroid: Math.round(centroid), traits };
+}
+
+// ── API Call ───────────────────────────────────────────────────────────────
+async function callAPI(messages) {
+  const res = await fetch('/api/chat', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ model: 'claude-sonnet-4-20250514', max_tokens: 1000, system: SYSTEM, messages })
+  });
+  const data = await res.json();
+  if (data.error) throw new Error(typeof data.error === 'string' ? data.error : data.error.message);
+  return data.content[0].text;
+}
+
+const CHIPS = [
+  "Dry barking cough at night", "Loose rattling cough with mucus",
+  "Spasmodic cough, can't stop", "Cough worse in cold air",
+  "Child with croupy cough", "Cough with nausea and vomiting",
+  "Hoarse voice and dry cough", "Cough better with warm drinks",
+];
+
+// ── App ────────────────────────────────────────────────────────────────────
+function App() {
+  const [tab, setTab] = useState('chat');
+  const [msgs, setMsgs] = useState([{
+    role: 'assistant',
+    content: 'Welcome. I am your homeopathic consultant, drawing from the classical **Material Medica** tradition.\n\nYou may describe your symptoms for **remedy recommendations**, explore specific remedies, or ask about constitutional types.\n\nHow may I assist you today?'
+  }]);
+  const [input, setInput] = useState('');
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
+
+  // Cough state
+  const [recording, setRecording] = useState(false);
+  const [audioBlob, setAudioBlob] = useState(null);
+  const [audioUrl, setAudioUrl] = useState(null);
+  const [analysis, setAnalysis] = useState(null);
+  const [result, setResult] = useState('');
+  const [analyzing, setAnalyzing] = useState(false);
+  const [recTime, setRecTime] = useState(0);
+  const [bars, setBars] = useState(Array(36).fill(3));
+  const [micError, setMicError] = useState('');
+
+  const mrRef = useRef(null);
+  const streamRef = useRef(null);
+  const timerRef = useRef(null);
+  const animRef = useRef(null);
+  const analyserRef = useRef(null);
+  const endRef = useRef(null);
+  const fileRef = useRef(null);
+
+  useEffect(() => { endRef.current?.scrollIntoView({ behavior: 'smooth' }); }, [msgs]);
+
+  // ── Chat ──
+  const send = useCallback(async (text) => {
+    const t = text || input.trim();
+    if (!t || loading) return;
+    setInput(''); setError('');
+    const next = [...msgs, { role: 'user', content: t }];
+    setMsgs(next);
+    setLoading(true);
+    try {
+      const reply = await callAPI(next.map(m => ({ role: m.role, content: m.content })));
+      setMsgs(p => [...p, { role: 'assistant', content: reply }]);
+    } catch (e) {
+      setError(e.message);
+      setMsgs(p => [...p, { role: 'assistant', content: `⚠️ **Error:** ${e.message}\n\nMake sure your server is running and the API key is set in the .env file.` }]);
+    } finally { setLoading(false); }
+  }, [input, msgs, loading]);
+
+  // ── Record ──
+  const startRec = async () => {
+    setMicError('');
+    if (!navigator.mediaDevices) {
+      setMicError('Microphone not available. Use Chrome or Firefox and open via http://localhost:3000'); return;
+    }
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      streamRef.current = stream;
+      const ctx = new (window.AudioContext || window.webkitAudioContext)();
+      const src = ctx.createMediaStreamSource(stream);
+      const an = ctx.createAnalyser(); an.fftSize = 64;
+      src.connect(an); analyserRef.current = an;
+
+      const chunks = [];
+      // Try different mime types for browser compatibility
+      const mimeType = MediaRecorder.isTypeSupported('audio/webm;codecs=opus') ? 'audio/webm;codecs=opus'
+        : MediaRecorder.isTypeSupported('audio/webm') ? 'audio/webm'
+        : MediaRecorder.isTypeSupported('audio/ogg') ? 'audio/ogg' : '';
+      const mr = new MediaRecorder(stream, mimeType ? { mimeType } : {});
+      mr.ondataavailable = e => { if (e.data.size > 0) chunks.push(e.data); };
+      mr.onstop = async () => {
+        const blob = new Blob(chunks, { type: mimeType || 'audio/webm' });
+        setAudioBlob(blob); setAudioUrl(URL.createObjectURL(blob));
+        await ctx.close(); setAnalysis(null); setResult('');
+      };
+      mr.start(100); mrRef.current = mr;
+      setRecording(true); setRecTime(0);
+      timerRef.current = setInterval(() => setRecTime(t => t + 1), 1000);
+
+      const tick = () => {
+        const data = new Uint8Array(an.frequencyBinCount);
+        an.getByteFrequencyData(data);
+        setBars(Array.from({ length: 36 }, (_, i) => {
+          const idx = Math.floor((i / 36) * data.length);
+          return Math.max(3, (data[idx] / 255) * 46);
+        }));
+        animRef.current = requestAnimationFrame(tick);
+      };
+      tick();
+    } catch (e) {
+      setMicError('Microphone access denied. Please allow microphone access in your browser and try again.');
+    }
+  };
+
+  const stopRec = () => {
+    mrRef.current?.stop();
+    streamRef.current?.getTracks().forEach(t => t.stop());
+    cancelAnimationFrame(animRef.current);
+    clearInterval(timerRef.current);
+    setRecording(false); setBars(Array(36).fill(3));
+  };
+
+  const handleFile = e => {
+    const f = e.target.files[0];
+    if (!f) return;
+    setAudioBlob(f); setAudioUrl(URL.createObjectURL(f));
+    setAnalysis(null); setResult('');
+  };
+
+  const doAnalyze = async () => {
+    if (!audioBlob) return;
+    setAnalyzing(true); setResult('');
+    try {
+      const buf = await audioBlob.arrayBuffer();
+      const ctx = new (window.AudioContext || window.webkitAudioContext)();
+      let decoded;
+      try { decoded = await ctx.decodeAudioData(buf); }
+      catch { throw new Error('Could not decode audio. Try recording again or use a different file format (mp3, wav).'); }
+      const a = analyzeAudio(decoded);
+      setAnalysis(a);
+      await ctx.close();
+
+      const prompt = `Cough audio analysis results:
+- Duration: ${a.dur} seconds
+- RMS amplitude: ${a.rms} (scale 0–1; higher = louder)
+- Cough bursts detected: ${a.bursts}
+- Spectral centroid: ${a.centroid} Hz
+- Acoustic traits: ${a.traits.join(', ')}
+
+Based on these acoustic characteristics, please:
+1. Describe what type of cough this profile suggests
+2. Recommend the top 3–4 homeopathic remedies from the Material Medica
+3. Ask 2 follow-up questions about modalities or accompanying symptoms to refine the recommendation`;
+
+      const reply = await callAPI([{ role: 'user', content: prompt }]);
+      setResult(reply);
+    } catch (e) {
+      setResult(`⚠️ ${e.message}`);
+    } finally { setAnalyzing(false); }
+  };
+
+  const fmt = s => `${Math.floor(s/60)}:${String(s%60).padStart(2,'0')}`;
+
+  return (
+    <div className="app">
+      <header className="header">
+        <div className="header-inner">
+          <div className="brand-icon">🌿</div>
+          <div>
+            <div className="brand-name">Materia Medica</div>
+            <div className="brand-sub">Homeopathic Remedy Consultant</div>
+          </div>
+        </div>
+      </header>
+
+      <div className="tabs">
+        <div className="tabs-inner">
+          <button className={`tab ${tab==='chat'?'active':''}`} onClick={()=>setTab('chat')}>🌱 Symptom Consultation</button>
+          <button className={`tab ${tab==='cough'?'active':''}`} onClick={()=>setTab('cough')}>🎙 Cough Analyzer</button>
+        </div>
+      </div>
+
+      <div className="main">
+        <div className="panel">
+
+          {/* ── CHAT TAB ── */}
+          {tab === 'chat' && (
+            <div className="chat-area">
+              <div className="messages">
+                {msgs.map((m, i) => (
+                  <div key={i} className={`msg ${m.role}`}>
+                    <div className="avatar">{m.role==='assistant'?'🌿':'👤'}</div>
+                    <div className="bubble">
+                      {parseMarkdown(m.content)}
+                      {m.role==='assistant' && i > 0 && (
+                        <div className="disclaimer">
+                          For educational purposes only. Consult a qualified homeopath or physician for serious conditions.
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                ))}
+                {loading && (
+                  <div className="msg assistant">
+                    <div className="avatar">🌿</div>
+                    <div className="bubble"><div className="dots"><span>●</span><span>●</span><span>●</span></div></div>
+                  </div>
+                )}
+                <div ref={endRef} />
+              </div>
+
+              <div className="quick-chips">
+                {CHIPS.map(c => (
+                  <button key={c} className="chip" onClick={()=>send(c)}>{c}</button>
+                ))}
+              </div>
+
+              <div className="input-row">
+                <div className="input-wrap">
+                  <textarea
+                    placeholder="Describe your symptoms, ask about a remedy…"
+                    value={input}
+                    onChange={e=>setInput(e.target.value)}
+                    onKeyDown={e=>{ if(e.key==='Enter'&&!e.shiftKey){e.preventDefault();send();} }}
+                    rows={1}
+                  />
+                </div>
+                <button className="send-btn" onClick={()=>send()} disabled={loading||!input.trim()}>
+                  {loading ? '…' : 'Send'}
+                </button>
+              </div>
+            </div>
+          )}
+
+          {/* ── COUGH TAB ── */}
+          {tab === 'cough' && (
+            <div className="cough-panel">
+              <div className="card">
+                <h3>Cough Sound Analysis</h3>
+                <p>Record your cough or upload an audio file. The AI analyzes acoustic characteristics — intensity, pattern, frequency profile — and matches them to Material Medica remedies.</p>
+
+                <div className="recorder-area">
+                  {recording && (
+                    <>
+                      <div className="rec-timer">{fmt(recTime)}</div>
+                      <div className="waveform">
+                        {bars.map((h,i) => <div key={i} className="bar" style={{height:h}} />)}
+                      </div>
+                    </>
+                  )}
+                  <button className={`rec-btn ${recording?'recording':''}`}
+                    onClick={recording ? stopRec : startRec}>
+                    {recording ? '⏹' : '🎙'}
+                  </button>
+                  <div className="rec-label">{recording ? 'Recording — tap to stop' : 'Tap to record your cough'}</div>
+                  {micError && <div className="error-box">{micError}</div>}
+                  <div className="perm-note">Your browser may ask for microphone permission — please click Allow</div>
+                </div>
+
+                <div className="divider">— or upload a file —</div>
+
+                <div className="upload-zone" onClick={()=>fileRef.current?.click()}>
+                  <div style={{fontSize:24,marginBottom:6}}>📁</div>
+                  <p>Click to upload audio (mp3, wav, ogg, webm)</p>
+                  <input ref={fileRef} type="file" accept="audio/*" style={{display:'none'}} onChange={handleFile} />
+                </div>
+              </div>
+
+              {audioUrl && (
+                <div className="card">
+                  <h3>Recorded Audio</h3>
+                  <audio controls src={audioUrl} />
+                  {analysis && (
+                    <div className="metrics">
+                      <div className="metric">
+                        <div className="metric-val">{analysis.dur}s</div>
+                        <div className="metric-label">Duration</div>
+                      </div>
+                      <div className="metric">
+                        <div className="metric-val">{analysis.bursts}</div>
+                        <div className="metric-label">Bursts</div>
+                      </div>
+                      <div className="metric">
+                        <div className="metric-val">{analysis.centroid}Hz</div>
+                        <div className="metric-label">Centroid</div>
+                      </div>
+                    </div>
+                  )}
+                  <button className="analyze-btn" onClick={doAnalyze} disabled={analyzing||loading}>
+                    {analyzing ? 'Analyzing…' : '✦  Analyze & Get Recommendations'}
+                  </button>
+                </div>
+              )}
+
+              {analyzing && (
+                <div className="card" style={{textAlign:'center',padding:28}}>
+                  <div className="dots" style={{fontSize:13,letterSpacing:2,color:'var(--sage)'}}>
+                    Consulting the Material Medica <span>●</span><span>●</span><span>●</span>
+                  </div>
+                </div>
+              )}
+
+              {result && (
+                <div className="result-card">
+                  <h4>🌿 Remedy Recommendation</h4>
+                  {analysis?.traits && (
+                    <div className="tags">
+                      {analysis.traits.map((t,i) => <span key={i} className="tag">{t}</span>)}
+                    </div>
+                  )}
+                  <div className="result-text">{parseMarkdown(result)}</div>
+                  <div className="disclaimer" style={{marginTop:12}}>
+                    Educational purposes only. Consult a qualified practitioner. Breathing difficulties require immediate medical attention.
+                  </div>
+                  <button className="chat-btn" onClick={()=>{
+                    setTab('chat');
+                    setMsgs(p=>[...p,{role:'assistant',content:'**Cough Analysis Result:**\n\n'+result}]);
+                  }}>Continue Consultation in Chat →</button>
+                </div>
+              )}
+            </div>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+ReactDOM.createRoot(document.getElementById('root')).render(<App />);
+</script>
+</body>
+</html>
