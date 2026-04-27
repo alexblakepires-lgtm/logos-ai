@@ -156,7 +156,7 @@ async def chat(req: ChatRequest):
             import anthropic
             ac = anthropic.Anthropic(api_key=ANTHROPIC_KEY)
             response = ac.messages.create(
-                model="claude-sonnet-4-20250514",
+                model="claude-sonnet-4-5",
                 max_tokens=1000,
                 system=system,
                 messages=[{"role": m.role, "content": m.content} for m in req.messages]
@@ -207,7 +207,7 @@ Based on these acoustic characteristics:
             import anthropic
             ac = anthropic.Anthropic(api_key=ANTHROPIC_KEY)
             response = ac.messages.create(
-                model="claude-sonnet-4-20250514",
+                model="claude-sonnet-4-5",
                 max_tokens=1000,
                 system=system,
                 messages=[{"role": "user", "content": prompt}]
