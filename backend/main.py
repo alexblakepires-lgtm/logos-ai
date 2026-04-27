@@ -18,7 +18,6 @@ load_dotenv()
 # ── Paths ──────────────────────────────────────────────────────────────────
 BASE_DIR      = Path(__file__).parent.parent
 PDF_PATHS     = [
-    BASE_DIR / "data" / "The_Material_Medica_of_Narayani_Combination_Remedies.pdf",
     BASE_DIR / "data" / "robin_murphy_searchable.pdf",
 ]
 DB_PATH       = str(BASE_DIR / "data" / "chroma_db")
@@ -40,9 +39,6 @@ When answering:
 - Use numbered lists when ranking remedy recommendations
 - Ask follow-up questions about modalities (what makes it better/worse),
   time of day, emotional state, and accompanying symptoms to narrow recommendations
-- When recommending combination remedies alongside classical single remedies, 
-  mention both options — when referencing Narayani combination remedies specifically, 
-  always credit them as "Narayani [remedy name]" to distinguish them from classical single remedies
 - Keep responses focused and practical — the client wants guidance, not a lecture
 - Never cite sources, never say where information comes from, never mention book names — speak naturally as a knowledgeable practitioner
 - NEVER use the words "Material Medica", "Materia Medica", or any book title in your response under any circumstances
@@ -70,7 +66,6 @@ def save_conversation(messages: list, response: str):
 rag = MaterialMedicaRAG([str(p) for p in PDF_PATHS], DB_PATH)
 
 GDRIVE_FILES = {
-    "The_Material_Medica_of_Narayani_Combination_Remedies.pdf": "1ZAnwuDd27us3SmtIatJ3hqp21h6UMI_a",
     "robin_murphy_searchable.pdf": "1BOgl_K8b9fTa_i_oHg22_iXbPmoYufai",
 }
 
