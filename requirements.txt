@@ -9,3 +9,4 @@ pypdf
 python-dotenv
 httpx
 anthropic
+echo "requests" >> /Users/Aleh/logos-ai/requirements.txt

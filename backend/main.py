@@ -69,8 +69,38 @@ def save_conversation(messages: list, response: str):
 # ── RAG ────────────────────────────────────────────────────────────────────
 rag = MaterialMedicaRAG([str(p) for p in PDF_PATHS], DB_PATH)
 
+GDRIVE_FILES = {
+    "The_Material_Medica_of_Narayani_Combination_Remedies.pdf": "1ZAnwuDd27us3SmtIatJ3hqp21h6UMI_a",
+    "robin_murphy_searchable.pdf": "1BOgl_K8b9fTa_i_oHg22_iXbPmoYufai",
+}
+
+def download_from_gdrive(file_id: str, dest_path: Path):
+    import requests
+    print(f"⬇️  Downloading {dest_path.name} from Google Drive...")
+    url = f"https://drive.google.com/uc?export=download&id={file_id}"
+    session = requests.Session()
+    response = session.get(url, stream=True)
+    token = None
+    for key, value in response.cookies.items():
+        if key.startswith("download_warning"):
+            token = value
+    if token:
+        response = session.get(url, params={"confirm": token}, stream=True)
+    dest_path.parent.mkdir(parents=True, exist_ok=True)
+    with open(dest_path, "wb") as f:
+        for chunk in response.iter_content(32768):
+            if chunk:
+                f.write(chunk)
+    print(f"✅ Downloaded {dest_path.name}")
+
 @asynccontextmanager
 async def lifespan(app: FastAPI):
+    # Download PDFs from Google Drive if not present
+    for filename, file_id in GDRIVE_FILES.items():
+        dest = BASE_DIR / "data" / filename
+        if not dest.exists():
+            download_from_gdrive(file_id, dest)
+
     if Path(DB_PATH).exists():
         rag.load()
     else:
