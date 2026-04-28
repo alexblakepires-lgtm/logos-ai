@@ -19,6 +19,7 @@ load_dotenv()
 BASE_DIR      = Path(__file__).parent.parent
 PDF_PATHS     = [
     BASE_DIR / "data" / "robin_murphy_searchable.pdf",
+    BASE_DIR / "data" / "Phatak-s-Materia-Medica.txt",
 ]
 DB_PATH       = str(BASE_DIR / "data" / "chroma_db")
 FRONT_DIR     = str(BASE_DIR / "frontend")
@@ -67,6 +68,7 @@ rag = MaterialMedicaRAG([str(p) for p in PDF_PATHS], DB_PATH)
 
 GDRIVE_FILES = {
     "robin_murphy_searchable.pdf": "1BOgl_K8b9fTa_i_oHg22_iXbPmoYufai",
+    "Phatak-s-Materia-Medica.txt": "1Uqm4iOg60TYcZlSdeo4w6zfcYbkyjkhZ",
 }
 
 def download_from_gdrive(file_id: str, dest_path: Path):

@@ -3,6 +3,7 @@ from langchain_community.document_loaders import PyPDFLoader
 from langchain_text_splitters import RecursiveCharacterTextSplitter
 from langchain_community.vectorstores import Chroma
 from langchain_community.embeddings import HuggingFaceEmbeddings
+from langchain.schema import Document
 
 
 class MaterialMedicaRAG:
@@ -23,15 +24,22 @@ class MaterialMedicaRAG:
         for pdf_path in self.pdf_paths:
             print(f"📖 Loading: {pdf_path}")
             try:
-                loader = PyPDFLoader(pdf_path)
-                pages = loader.load()
-                print(f"   {len(pages)} pages loaded")
+                path = Path(pdf_path)
+                if path.suffix == '.txt':
+                    with open(path, 'r', encoding='utf-8', errors='ignore') as f:
+                        text = f.read()
+                    docs = [Document(page_content=text, metadata={"source": str(path)})]
+                else:
+                    loader = PyPDFLoader(pdf_path)
+                    docs = loader.load()
+                
+                print(f"   loaded")
                 splitter = RecursiveCharacterTextSplitter(
                     chunk_size=500,
                     chunk_overlap=80,
                     separators=["\n\n", "\n", ".", " "],
                 )
-                chunks = splitter.split_documents(pages)
+                chunks = splitter.split_documents(docs)
                 print(f"   {len(chunks)} chunks created")
                 all_chunks.extend(chunks)
             except Exception as e:
