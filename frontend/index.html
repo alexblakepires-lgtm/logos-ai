@@ -366,12 +366,7 @@ async function callAPI(messages) {
   return data.content[0].text;
 }
 
-const CHIPS = [
-  "Dry barking cough at night", "Loose rattling cough with mucus",
-  "Spasmodic cough, can't stop", "Cough worse in cold air",
-  "Child with croupy cough", "Cough with nausea and vomiting",
-  "Hoarse voice and dry cough", "Cough better with warm drinks",
-];
+
 
 // ── App ────────────────────────────────────────────────────────────────────
 function App() {
@@ -563,11 +558,7 @@ Based on these acoustic characteristics, please:
                 <div ref={endRef} />
               </div>
 
-              <div className="quick-chips">
-                {CHIPS.map(c => (
-                  <button key={c} className="chip" onClick={()=>send(c)}>{c}</button>
-                ))}
-              </div>
+              
 
               <div className="input-row">
                 <div className="input-wrap">
