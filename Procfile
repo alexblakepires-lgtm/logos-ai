@@ -1,3 +1,1 @@
-cd /Users/Aleh/logos-ai
-echo 'web: cd backend && uvicorn main:app --host 0.0.0.0 --port $PORT' > Procfile
-cat Procfile
+web: cd backend && uvicorn main:app --host 0.0.0.0 --port $PORT
