@@ -133,7 +133,6 @@ async def build_database():
             print("⚠️  No PDFs found in data/ folder")
         else:
             rag.index()
-    yield
 
 # ── App ────────────────────────────────────────────────────────────────────
 app = FastAPI(title="Logos AI", lifespan=lifespan)
