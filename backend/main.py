@@ -116,7 +116,10 @@ def download_from_gdrive(file_id: str, dest_path: Path):
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    # Download PDFs from Google Drive if not present
+    asyncio.create_task(build_database())
+    yield
+
+async def build_database():
     for filename, file_id in GDRIVE_FILES.items():
         dest = BASE_DIR / "data" / filename
         if not dest.exists():
