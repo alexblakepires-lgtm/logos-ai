@@ -3,8 +3,7 @@ from langchain_community.document_loaders import PyPDFLoader
 from langchain_text_splitters import RecursiveCharacterTextSplitter
 from langchain_community.vectorstores import Chroma
 from langchain_community.embeddings import HuggingFaceEmbeddings
-from langchain.schema import Document
-
+from langchain_core.documents import Document
 
 class MaterialMedicaRAG:
     def __init__(self, pdf_paths, db_path: str = "../data/chroma_db"):
