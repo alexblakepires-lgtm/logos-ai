@@ -19,9 +19,8 @@ load_dotenv()
 # ── Paths ──────────────────────────────────────────────────────────────────
 BASE_DIR      = Path(__file__).parent.parent
 PDF_PATHS     = [
-     BASE_DIR / "data" / "robin_murphy_searchable.pdf",
-    BASE_DIR / "data" / "Phatak-s-Materia-Medica.txt",
-    BASE_DIR / "data" / "kent_materia_medica.txt",
+    BASE_DIR / "data" / "NATURES_MATERIA_MEDICA.txt",
+    BASE_DIR / "data" / "METAREPERTORY.txt",
 ]
 DB_PATH       = str(BASE_DIR / "data" / "chroma_db")
 FRONT_DIR     = str(BASE_DIR / "frontend")
@@ -91,9 +90,8 @@ def save_conversation(messages: list, response: str):
 rag = MaterialMedicaRAG([str(p) for p in PDF_PATHS], DB_PATH)
 
 GDRIVE_FILES = {
-    "robin_murphy_searchable.pdf": "1BOgl_K8b9fTa_i_oHg22_iXbPmoYufai",
-    "Phatak-s-Materia-Medica.txt": "1Uqm4iOg60TYcZlSdeo4w6zfcYbkyjkhZ",
-    "kent_materia_medica.txt": "1JA6wJLS7BSftM_Eq3-Fo9kit2f8YGepS",
+    "NATURES_MATERIA_MEDICA.txt": "16uz6fZJbTLs0AG5WP26wqGvQJyGC_7F_",
+    "METAREPERTORY.txt": "1u55UWY_Cn90dhIsy2yAWTNQA1t_zCLEe",
 }
 
 def download_from_gdrive(file_id: str, dest_path: Path):
@@ -130,7 +128,7 @@ async def build_database():
         rag.load()
     else:
         if not any(p.exists() for p in PDF_PATHS):
-            print("⚠️  No PDFs found in data/ folder")
+            print("⚠️  No text files found in data/ folder")
         else:
             rag.index()
 
