@@ -129,10 +129,15 @@ async def build_database():
     if Path(DB_PATH).exists():
         rag.load()
     else:
-        if not any(p.exists() for p in PDF_PATHS):
-            print("⚠️  No text files found in data/ folder")
-        else:
-            rag.index()
+        chroma_zip = BASE_DIR / "data" / "chroma_db.zip"
+        if not chroma_zip.exists():
+            download_from_gdrive("17BMtg7Mt89FU43dvqj8x4Ca0cP-CVCxz", chroma_zip)
+        import zipfile
+        print("📦 Extracting ChromaDB...")
+        with zipfile.ZipFile(chroma_zip, 'r') as z:
+            z.extractall(BASE_DIR / "data")
+        print("✅ ChromaDB extracted")
+        rag.load()
 
 # ── App ────────────────────────────────────────────────────────────────────
 app = FastAPI(title="Logos AI", lifespan=lifespan)
