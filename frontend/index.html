@@ -92,7 +92,7 @@
     textarea { width: 100%; padding: 11px 15px; background: #fff; border: 1px solid var(--border);
       border-radius: 8px; font-family: 'Josefin Sans', sans-serif; font-size: 13px;
       color: var(--ink); outline: none; resize: none; min-height: 44px; max-height: 120px;
-      line-height: 1.5; transition: border-color 0.2s; letter-spacing: 0.3px; }
+      line-height: 1.5; transition: border-color 0.2s; letter-spacing: 0.3px; overflow-y: hidden; box-sizing: border-box; }
     textarea:focus { border-color: var(--sage); }
     textarea::placeholder { color: var(--muted); }
     .send-btn { padding: 0 20px; background: var(--forest); color: var(--cream); border: none;
@@ -565,7 +565,7 @@ Based on these acoustic characteristics, please:
                   <textarea
                     placeholder="Describe your symptoms, ask about a remedy…"
                     value={input}
-                    onChange={e=>setInput(e.target.value)}
+                    onChange={e=>{ setInput(e.target.value); e.target.style.height='auto'; e.target.style.height=e.target.scrollHeight+'px'; }}
                     onKeyDown={e=>{ if(e.key==='Enter'&&!e.shiftKey){e.preventDefault();send();} }}
                     rows={1}
                   />
