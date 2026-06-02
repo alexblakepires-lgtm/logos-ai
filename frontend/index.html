@@ -417,64 +417,7 @@ function App() {
     }
   };
 
-  if (!auth) return (
-    <div className="app">
-      <header className="header">
-        <div className="header-inner">
-          <div className="brand-icon">🌿</div>
-          <div>
-            <div className="brand-name" translate="no">Logos</div>
-            <div className="brand-sub">Remedy Database</div>
-          </div>
-        </div>
-      </header>
-      <div style={{flex:1, display:'flex', alignItems:'center', justifyContent:'center', padding:'20px'}}>
-        <div style={{background:'#fff', border:'1px solid var(--border)', borderRadius:'16px', padding:'40px', maxWidth:'400px', width:'100%', boxShadow:'0 4px 24px rgba(44,74,46,0.08)'}}>
-          <div style={{textAlign:'center', marginBottom:'28px'}}>
-            <div style={{fontSize:'32px', marginBottom:'8px'}}>🌿</div>
-            <div style={{fontFamily:'Cormorant Garamond, serif', fontSize:'24px', color:'var(--forest)', fontWeight:300}}>{authMode === 'signin' ? 'Welcome Back' : 'Create Account'}</div>
-            <div style={{fontSize:'11px', letterSpacing:'2px', color:'var(--muted)', textTransform:'uppercase', marginTop:'4px'}}>{authMode === 'signin' ? 'Sign in to Logos' : 'Join Logos'}</div>
-          </div>
-          <div style={{display:'flex', flexDirection:'column', gap:'12px'}}>
-            <input
-              type="email"
-              placeholder="Email address"
-              value={authEmail}
-              onChange={e=>setAuthEmail(e.target.value)}
-              style={{width:'100%', padding:'12px 15px', border:'1px solid var(--border)', borderRadius:'8px', fontFamily:'Josefin Sans, sans-serif', fontSize:'13px', outline:'none', boxSizing:'border-box'}}
-            />
-            <input
-              type="password"
-              placeholder="Password"
-              value={authPassword}
-              onChange={e=>setAuthPassword(e.target.value)}
-              onKeyDown={e=>{ if(e.key==='Enter') handleAuth(); }}
-              style={{width:'100%', padding:'12px 15px', border:'1px solid var(--border)', borderRadius:'8px', fontFamily:'Josefin Sans, sans-serif', fontSize:'13px', outline:'none', boxSizing:'border-box'}}
-            />
-            {authError && <div style={{fontSize:'12px', color: authError.includes('created') ? 'var(--sage)' : 'var(--rust)', padding:'8px 12px', background: authError.includes('created') ? 'rgba(90,122,92,0.08)' : 'rgba(139,58,42,0.08)', borderRadius:'6px'}}>{authError}</div>}
-            <button
-              onClick={handleAuth}
-              disabled={authLoading || !authEmail || !authPassword}
-              style={{width:'100%', padding:'13px', background:'var(--forest)', color:'var(--cream)', border:'none', borderRadius:'8px', cursor:'pointer', fontFamily:'Josefin Sans, sans-serif', fontSize:'11px', letterSpacing:'2px', textTransform:'uppercase', opacity: authLoading ? 0.7 : 1}}
-            >
-              {authLoading ? '…' : authMode === 'signin' ? 'Sign In' : 'Create Account'}
-            </button>
-            <div style={{textAlign:'center', fontSize:'12px', color:'var(--muted)'}}>
-              {authMode === 'signin' ? "Don't have an account? " : "Already have an account? "}
-              <span onClick={()=>{ setAuthMode(authMode==='signin'?'signup':'signin'); setAuthError(''); }} style={{color:'var(--forest)', cursor:'pointer', textDecoration:'underline'}}>
-                {authMode === 'signin' ? 'Sign up' : 'Sign in'}
-              </span>
-            </div>
-            <div style={{textAlign:'center'}}>
-              <span onClick={()=>setAuth({token:null, email:'guest'})} style={{fontSize:'11px', color:'var(--muted)', cursor:'pointer', letterSpacing:'1px'}}>
-                Continue as guest →
-              </span>
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
-  );
+  
   
   const [msgs, setMsgs] = useState([{
     role: 'assistant',
@@ -615,6 +558,65 @@ Based on these acoustic characteristics, please:
   };
 
   const fmt = s => `${Math.floor(s/60)}:${String(s%60).padStart(2,'0')}`;
+const loginScreen = (
+    <div className="app">
+      <header className="header">
+        <div className="header-inner">
+          <div className="brand-icon">🌿</div>
+          <div>
+            <div className="brand-name" translate="no">Logos</div>
+            <div className="brand-sub">Remedy Database</div>
+          </div>
+        </div>
+      </header>
+      <div style={{flex:1, display:'flex', alignItems:'center', justifyContent:'center', padding:'20px'}}>
+        <div style={{background:'#fff', border:'1px solid var(--border)', borderRadius:'16px', padding:'40px', maxWidth:'400px', width:'100%', boxShadow:'0 4px 24px rgba(44,74,46,0.08)'}}>
+          <div style={{textAlign:'center', marginBottom:'28px'}}>
+            <div style={{fontSize:'32px', marginBottom:'8px'}}>🌿</div>
+            <div style={{fontFamily:'Cormorant Garamond, serif', fontSize:'24px', color:'var(--forest)', fontWeight:300}}>{authMode === 'signin' ? 'Welcome Back' : 'Create Account'}</div>
+            <div style={{fontSize:'11px', letterSpacing:'2px', color:'var(--muted)', textTransform:'uppercase', marginTop:'4px'}}>{authMode === 'signin' ? 'Sign in to Logos' : 'Join Logos'}</div>
+          </div>
+          <div style={{display:'flex', flexDirection:'column', gap:'12px'}}>
+            <input
+              type="email"
+              placeholder="Email address"
+              value={authEmail}
+              onChange={e=>setAuthEmail(e.target.value)}
+              style={{width:'100%', padding:'12px 15px', border:'1px solid var(--border)', borderRadius:'8px', fontFamily:'Josefin Sans, sans-serif', fontSize:'13px', outline:'none', boxSizing:'border-box'}}
+            />
+            <input
+              type="password"
+              placeholder="Password"
+              value={authPassword}
+              onChange={e=>setAuthPassword(e.target.value)}
+              onKeyDown={e=>{ if(e.key==='Enter') handleAuth(); }}
+              style={{width:'100%', padding:'12px 15px', border:'1px solid var(--border)', borderRadius:'8px', fontFamily:'Josefin Sans, sans-serif', fontSize:'13px', outline:'none', boxSizing:'border-box'}}
+            />
+            {authError && <div style={{fontSize:'12px', color: authError.includes('created') ? 'var(--sage)' : 'var(--rust)', padding:'8px 12px', background: authError.includes('created') ? 'rgba(90,122,92,0.08)' : 'rgba(139,58,42,0.08)', borderRadius:'6px'}}>{authError}</div>}
+            <button
+              onClick={handleAuth}
+              disabled={authLoading || !authEmail || !authPassword}
+              style={{width:'100%', padding:'13px', background:'var(--forest)', color:'var(--cream)', border:'none', borderRadius:'8px', cursor:'pointer', fontFamily:'Josefin Sans, sans-serif', fontSize:'11px', letterSpacing:'2px', textTransform:'uppercase', opacity: authLoading ? 0.7 : 1}}
+            >
+              {authLoading ? '…' : authMode === 'signin' ? 'Sign In' : 'Create Account'}
+            </button>
+            <div style={{textAlign:'center', fontSize:'12px', color:'var(--muted)'}}>
+              {authMode === 'signin' ? "Don't have an account? " : "Already have an account? "}
+              <span onClick={()=>{ setAuthMode(authMode==='signin'?'signup':'signin'); setAuthError(''); }} style={{color:'var(--forest)', cursor:'pointer', textDecoration:'underline'}}>
+                {authMode === 'signin' ? 'Sign up' : 'Sign in'}
+              </span>
+            </div>
+            <div style={{textAlign:'center'}}>
+              <span onClick={()=>setAuth({token:null, email:'guest'})} style={{fontSize:'11px', color:'var(--muted)', cursor:'pointer', letterSpacing:'1px'}}>
+                Continue as guest →
+              </span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+  if (!auth) return loginScreen;
 
   return (
     <div className="app">
