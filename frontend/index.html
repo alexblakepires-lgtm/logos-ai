@@ -391,7 +391,12 @@ async function callAPI(messages, userToken = '', conversationId = '') {
 // ── App ────────────────────────────────────────────────────────────────────
 function App() {
   const [tab, setTab] = useState('chat');
-  const [auth, setAuth] = useState(null);
+  const [auth, setAuth] = useState(() => {
+    try {
+      const saved = localStorage.getItem('logos_auth');
+      return saved ? JSON.parse(saved) : null;
+    } catch { return null; }
+  });
   const [authMode, setAuthMode] = useState('signin');
   const [authEmail, setAuthEmail] = useState('');
   const [authPassword, setAuthPassword] = useState('');
@@ -411,7 +416,9 @@ function App() {
       const data = await res.json();
       if (data.detail) throw new Error(data.detail);
       if (authMode === 'signin') {
-        setAuth({ token: data.access_token, email: data.user });
+        const authData = { token: data.access_token, email: data.user };
+        localStorage.setItem('logos_auth', JSON.stringify(authData));
+        setAuth(authData);
       } else {
         setAuthError('Account created! Please check your email to confirm, then sign in.');
         setAuthMode('signin');
@@ -625,7 +632,7 @@ const loginScreen = (
               </span>
             </div>
             <div style={{textAlign:'center'}}>
-              <span onClick={()=>setAuth({token:null, email:'guest'})} style={{fontSize:'11px', color:'var(--muted)', cursor:'pointer', letterSpacing:'1px'}}>
+              <span onClick={()=>{ const g = {token:null, email:'guest'}; localStorage.setItem('logos_auth', JSON.stringify(g)); setAuth(g); }} style={{fontSize:'11px', color:'var(--muted)', cursor:'pointer', letterSpacing:'1px'}}>
                 Continue as guest →
               </span>
             </div>
