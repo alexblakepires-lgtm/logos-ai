@@ -475,11 +475,12 @@ function App() {
       </div>
     </div>
   );
-
+  
   const [msgs, setMsgs] = useState([{
     role: 'assistant',
 content: 'Welcome. I am Logos, your Homeopathic Assistant.\n\nDescribe your symptoms for **remedy recommendations**, explore specific remedies.\n\nHow may I help you today?'
-}]);  const [input, setInput] = useState('');
+}]);
+  const [input, setInput] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
 
