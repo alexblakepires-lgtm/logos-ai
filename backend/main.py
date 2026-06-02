@@ -171,7 +171,7 @@ class CoughRequest(BaseModel):
     centroid: float
     traits: list[str]
 
-    class SignUpRequest(BaseModel):
+class SignUpRequest(BaseModel):
     email: str
     password: str
 
@@ -298,6 +298,29 @@ async def signout():
     except Exception as e:
         raise HTTPException(status_code=400, detail=str(e))
 
+@app.post("/api/auth/signup")
+async def signup(req: SignUpRequest):
+    try:
+        res = supabase.auth.sign_up({"email": req.email, "password": req.password})
+        return {"user": res.user.email if res.user else None}
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=str(e))
+
+@app.post("/api/auth/signin")
+async def signin(req: SignInRequest):
+    try:
+        res = supabase.auth.sign_in_with_password({"email": req.email, "password": req.password})
+        return {"access_token": res.session.access_token, "user": res.user.email}
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=str(e))
+
+@app.post("/api/auth/signout")
+async def signout():
+    try:
+        supabase.auth.sign_out()
+        return {"message": "Signed out"}
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=str(e))
 
 # ── Serve frontend (must be last) ──────────────────────────────────────────
 if Path(FRONT_DIR).exists():
