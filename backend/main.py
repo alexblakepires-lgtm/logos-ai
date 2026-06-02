@@ -163,6 +163,8 @@ class Message(BaseModel):
 class ChatRequest(BaseModel):
     messages: list[Message]
     browser_lang: str = "en"
+    user_token: str = ""
+    conversation_id: str = ""
 
 class CoughRequest(BaseModel):
     duration: float
@@ -217,7 +219,21 @@ async def chat(req: ChatRequest):
                 data = response.json()
                 reply = data["message"]["content"]
         save_conversation(req.messages, reply)
+        
+        # Save to Supabase if user is logged in
+        if req.user_token and req.conversation_id:
+            try:
+                supabase.postgrest.auth(req.user_token)
+                supabase.table("messages").insert({
+                    "conversation_id": req.conversation_id,
+                    "role": "assistant",
+                    "content": reply
+                }).execute()
+            except Exception as e:
+                print(f"⚠️ Supabase save error: {e}")
+        
         return {"content": [{"text": reply}]}
+
     except httpx.ConnectError:
         raise HTTPException(
             status_code=503,
