@@ -397,6 +397,7 @@ function App() {
   const [authPassword, setAuthPassword] = useState('');
   const [authLoading, setAuthLoading] = useState(false);
   const [authError, setAuthError] = useState('');
+  const [conversationId, setConversationId] = useState('');
 
   const handleAuth = async () => {
     setAuthLoading(true); setAuthError('');
@@ -454,7 +455,7 @@ content: 'Welcome. I am Logos, your Homeopathic Assistant.\n\nDescribe your symp
   useEffect(() => { endRef.current?.scrollIntoView({ behavior: 'smooth' }); }, [msgs]);
 
   // ── Chat ──
-  const send = useCallback(async (text) => {
+   const send = useCallback(async (text) => {
     const t = text || input.trim();
     if (!t || loading) return;
     setInput(''); setError('');
@@ -462,7 +463,19 @@ content: 'Welcome. I am Logos, your Homeopathic Assistant.\n\nDescribe your symp
     setMsgs(next);
     setLoading(true);
     try {
-      const reply = await callAPI(next.map(m => ({ role: m.role, content: m.content })), auth?.token || '', '');
+      // Create conversation on first user message
+      let convId = conversationId;
+      if (!convId && auth?.token) {
+        const convRes = await fetch('/api/conversations', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ user_token: auth.token, title: t.slice(0, 50) })
+        });
+        const convData = await convRes.json();
+        convId = convData.conversation_id || '';
+        setConversationId(convId);
+      }
+      const reply = await callAPI(next.map(m => ({ role: m.role, content: m.content })), auth?.token || '', convId || '');
       setMsgs(p => [...p, { role: 'assistant', content: reply }]);
     } catch (e) {
       setError(e.message);
