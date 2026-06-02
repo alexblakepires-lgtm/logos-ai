@@ -91,7 +91,7 @@
     .input-wrap { flex: 1; min-width: 0; overflow: visible; }
     textarea { width: 100%; padding: 11px 15px; background: #fff; border: 1px solid var(--border);
       border-radius: 8px; font-family: 'Josefin Sans', sans-serif; font-size: 13px;
-      color: var(--ink); outline: none; resize: none; min-height: 44px; max-height: 120px;
+      color: var(--ink); outline: none; resize: none; min-height: 56px; max-height: 120px;
       line-height: 1.5; transition: border-color 0.2s; letter-spacing: 0.3px; overflow-y: hidden; box-sizing: border-box; }
     textarea:focus { border-color: var(--sage); }
     textarea::placeholder { color: var(--muted); }
@@ -687,20 +687,25 @@ const loginScreen = (
               
 
               <div className="input-row">
-                <div className="input-wrap">
-                  <textarea
-                    placeholder="Describe your symptoms, ask about a remedy…"
-                    value={input}
-                    onChange={e=>{ setInput(e.target.value); e.target.style.height='auto'; e.target.style.height=e.target.scrollHeight+'px'; }}
-                    onKeyDown={e=>{ if(e.key==='Enter'&&!e.shiftKey){e.preventDefault(); if(input.endsWith('\n')){send();}else{setInput(i=>i+'\n'); e.target.style.height='auto'; e.target.style.height=e.target.scrollHeight+'px';}} }}
-                    rows={1}
-                  />
-                </div>
-                <button className="send-btn" onClick={()=>send()} disabled={loading||!input.trim()}>
-                  {loading ? '…' : 'Send'}
-                </button>
-              </div>
-            </div>
+  <div className="input-wrap" style={{position:'relative'}}>
+    <textarea
+      placeholder="Describe your symptoms, ask about a remedy…"
+      value={input}
+      onChange={e=>{ setInput(e.target.value); e.target.style.height='auto'; e.target.style.height=e.target.scrollHeight+'px'; }}
+      onKeyDown={e=>{ if(e.key==='Enter'&&e.ctrlKey){e.preventDefault();send();} }}
+      rows={1}
+      style={{paddingRight:'52px'}}
+    />
+    <button
+      className="send-btn"
+      onClick={()=>send()}
+      disabled={loading||!input.trim()}
+      style={{position:'absolute', right:'8px', bottom:'8px', width:'36px', height:'36px', borderRadius:'50%', padding:0, minWidth:'unset', display:'flex', alignItems:'center', justifyContent:'center', fontSize:'16px'}}
+    >
+      {loading ? '…' : '↑'}
+    </button>
+  </div>
+</div>
           )}
 
           {/* ── COUGH TAB ── */}
