@@ -566,7 +566,7 @@ Based on these acoustic characteristics, please:
                     placeholder="Describe your symptoms, ask about a remedy…"
                     value={input}
                     onChange={e=>{ setInput(e.target.value); e.target.style.height='auto'; e.target.style.height=e.target.scrollHeight+'px'; }}
-                    onKeyDown={e=>{ if(e.key==='Enter'&&!e.shiftKey){e.preventDefault();send();} }}
+                    onKeyDown={e=>{ if(e.key==='Enter'&&e.ctrlKey){e.preventDefault();send();} }}
                     rows={1}
                   />
                 </div>
