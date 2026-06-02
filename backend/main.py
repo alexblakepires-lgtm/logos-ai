@@ -156,6 +156,7 @@ class Message(BaseModel):
 
 class ChatRequest(BaseModel):
     messages: list[Message]
+    browser_lang: str = "en"
 
 class CoughRequest(BaseModel):
     duration: float
@@ -176,7 +177,7 @@ async def chat(req: ChatRequest):
         (m.content for m in reversed(req.messages) if m.role == "user"), ""
     )
     context = rag.search(last_user, k=4)
-    system = SYSTEM_PROMPT
+    system = SYSTEM_PROMPT + f"\n\nUSER BROWSER LANGUAGE: {req.browser_lang}. Use this as the default language unless the user writes in a different language, in which case follow what they type."
     if context:
         system += f"\n\n═══ RELEVANT KNOWLEDGE ═══\n\n{context}\n\n═══════════════════════════════════════════════════"
 
