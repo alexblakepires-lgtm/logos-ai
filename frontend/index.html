@@ -374,12 +374,12 @@ function analyzeAudio(audioBuffer) {
 }
 
 // ── API Call ───────────────────────────────────────────────────────────────
-async function callAPI(messages) {
+async function callAPI(messages, userToken = '', conversationId = '') {
   const browserLang = navigator.language || navigator.userLanguage || 'en';
   const res = await fetch('/api/chat', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ model: 'claude-sonnet-4-20250514', max_tokens: 1000, system: SYSTEM, messages, browser_lang: browserLang })
+    body: JSON.stringify({ messages, browser_lang: browserLang, user_token: userToken, conversation_id: conversationId })
   });
   const data = await res.json();
   if (data.error) throw new Error(typeof data.error === 'string' ? data.error : data.error.message);
@@ -462,7 +462,7 @@ content: 'Welcome. I am Logos, your Homeopathic Assistant.\n\nDescribe your symp
     setMsgs(next);
     setLoading(true);
     try {
-      const reply = await callAPI(next.map(m => ({ role: m.role, content: m.content })));
+      const reply = await callAPI(next.map(m => ({ role: m.role, content: m.content })), auth?.token || '', '');
       setMsgs(p => [...p, { role: 'assistant', content: reply }]);
     } catch (e) {
       setError(e.message);
