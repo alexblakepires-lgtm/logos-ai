@@ -11,10 +11,16 @@ from fastapi.staticfiles import StaticFiles
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 from dotenv import load_dotenv
+from supabase import create_client, Client
 
 from rag import MaterialMedicaRAG
 
 load_dotenv()
+
+# ── Supabase ───────────────────────────────────────────────────────────────
+SUPABASE_URL = os.getenv("SUPABASE_URL", "")
+SUPABASE_ANON_KEY = os.getenv("SUPABASE_ANON_KEY", "")
+supabase: Client = create_client(SUPABASE_URL, SUPABASE_ANON_KEY)
 
 # ── Paths ──────────────────────────────────────────────────────────────────
 BASE_DIR      = Path(__file__).parent.parent
@@ -165,6 +171,14 @@ class CoughRequest(BaseModel):
     centroid: float
     traits: list[str]
 
+    class SignUpRequest(BaseModel):
+    email: str
+    password: str
+
+class SignInRequest(BaseModel):
+    email: str
+    password: str
+
 # ── Routes ─────────────────────────────────────────────────────────────────
 @app.get("/api/health")
 async def health():
@@ -260,6 +274,29 @@ Based on these acoustic characteristics:
         raise HTTPException(status_code=503, detail="Ollama is not running.")
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
+    @app.post("/api/auth/signup")
+async def signup(req: SignUpRequest):
+    try:
+        res = supabase.auth.sign_up({"email": req.email, "password": req.password})
+        return {"user": res.user.email if res.user else None}
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=str(e))
+
+@app.post("/api/auth/signin")
+async def signin(req: SignInRequest):
+    try:
+        res = supabase.auth.sign_in_with_password({"email": req.email, "password": req.password})
+        return {"access_token": res.session.access_token, "user": res.user.email}
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=str(e))
+
+@app.post("/api/auth/signout")
+async def signout():
+    try:
+        supabase.auth.sign_out()
+        return {"message": "Signed out"}
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=str(e))
 
 
 # ── Serve frontend (must be last) ──────────────────────────────────────────
