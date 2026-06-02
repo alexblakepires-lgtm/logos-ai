@@ -12,3 +12,4 @@ langchain-community
 langchain-text-splitters
 chromadb
 sentence-transformers
+supabase
