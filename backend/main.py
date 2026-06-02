@@ -274,7 +274,7 @@ Based on these acoustic characteristics:
         raise HTTPException(status_code=503, detail="Ollama is not running.")
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
-    @app.post("/api/auth/signup")
+@app.post("/api/auth/signup")
 async def signup(req: SignUpRequest):
     try:
         res = supabase.auth.sign_up({"email": req.email, "password": req.password})
