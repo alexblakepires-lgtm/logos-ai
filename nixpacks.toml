@@ -1,5 +1,5 @@
 [phases.install]
-cmds = ["pip install fastapi uvicorn langchain langchain-community langchain-text-splitters chromadb sentence-transformers pypdf python-dotenv httpx anthropic"]
+cmds = ["pip install fastapi uvicorn langchain langchain-community langchain-text-splitters chromadb sentence-transformers pypdf python-dotenv httpx anthropic requests supabase"]
 
 [start]
-cmd = "uvicorn backend.main:app --host 0.0.0.0 --port $PORT"
+cmd = "cd backend && uvicorn main:app --host 0.0.0.0 --port $PORT"
