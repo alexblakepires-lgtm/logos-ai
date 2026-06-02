@@ -596,7 +596,7 @@ const loginScreen = (
             <button
               onClick={handleAuth}
               disabled={authLoading || !authEmail || !authPassword}
-              style={{width:'100%', padding:'13px', background:'var(--forest)', color:'var(--cream)', border:'none', borderRadius:'8px', cursor:'pointer', fontFamily:'Josefin Sans, sans-serif', fontSize:'11px', letterSpacing:'2px', textTransform:'uppercase', opacity: authLoading ? 0.7 : 1}}
+              style={{width:'100%', padding:'13px', background:'var(--sage)', color:'var(--cream)', border:'none', borderRadius:'8px', cursor:'pointer', fontFamily:'Josefin Sans, sans-serif', fontSize:'11px', letterSpacing:'2px', textTransform:'uppercase', opacity: authLoading ? 0.7 : 1}}
             >
               {authLoading ? '…' : authMode === 'signin' ? 'Sign In' : 'Create Account'}
             </button>
