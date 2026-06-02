@@ -293,8 +293,10 @@ function parseMarkdown(text) {
     // Ordered list
     if (line.match(/^\d+\. /)) {
       const items = [];
+      let counter = 1;
       while (i < lines.length && lines[i].match(/^\d+\. /)) {
-        items.push(<li key={i}>{inlineFormat(lines[i].replace(/^\d+\. /, ''))}</li>);
+        items.push(<li key={i} value={counter}>{inlineFormat(lines[i].replace(/^\d+\. /, ''))}</li>);
+counter++;
         i++;
       }
       elements.push(<ol key={key++}>{items}</ol>);
@@ -699,7 +701,18 @@ const loginScreen = (
       placeholder="Describe your symptoms, ask about a remedy…"
       value={input}
       onChange={e=>{ setInput(e.target.value); e.target.style.height='auto'; e.target.style.height=e.target.scrollHeight+'px'; }}
-      onKeyDown={e=>{ if(e.key==='Enter'&&e.ctrlKey){e.preventDefault();send();} }}
+      onKeyDown={e=>{
+  if (e.key === 'Enter') {
+    if (e.ctrlKey) { e.preventDefault(); send(); return; }
+    const now = Date.now();
+    if (now - lastEnterRef.current < 500) {
+      e.preventDefault();
+      send(input.replace(/\n$/, '').trim());
+    } else {
+      lastEnterRef.current = now;
+    }
+  }
+}}
       rows={1}
       style={{paddingRight:'52px'}}
     />
@@ -713,7 +726,8 @@ const loginScreen = (
     </button>
   </div>
 </div>
-          )}
+</div>
+)}
 
           {/* ── COUGH TAB ── */}
           {tab === 'cough' && (
