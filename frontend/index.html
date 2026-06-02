@@ -649,12 +649,23 @@ const loginScreen = (
     <div className="app">
       <header className="header">
         <div className="header-inner">
-          <div className="brand-icon">🌿</div>
-          <div>
-            <div className="brand-name" translate="no">Logos</div>
-            <div className="brand-sub"> Remedy Database</div>
-          </div>
-        </div>
+  <div className="brand-icon">🌿</div>
+  <div style={{flex:1}}>
+    <div className="brand-name" translate="no">Logos</div>
+    <div className="brand-sub">Remedy Database</div>
+  </div>
+  <button
+    onClick={()=>{ localStorage.removeItem('logos_auth'); setAuth(null); }}
+    style={{
+      background:'transparent', border:'1px solid rgba(184,146,42,0.4)',
+      color:'var(--amber)', borderRadius:'6px', padding:'6px 14px',
+      fontFamily:'Josefin Sans, sans-serif', fontSize:'10px',
+      letterSpacing:'2px', textTransform:'uppercase', cursor:'pointer'
+    }}
+  >
+    Sign Out
+  </button>
+</div>
       </header>
 
       <div className="tabs">
