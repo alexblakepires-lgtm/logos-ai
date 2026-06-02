@@ -243,6 +243,7 @@ async def chat(req: ChatRequest):
         raise HTTPException(status_code=500, detail=str(e))
 
 
+
 @app.post("/api/analyze-cough")
 async def analyze_cough(req: CoughRequest):
     context = rag.search("cough remedy treatment", k=5)
@@ -314,27 +315,31 @@ async def signout():
     except Exception as e:
         raise HTTPException(status_code=400, detail=str(e))
 
-@app.post("/api/auth/signup")
-async def signup(req: SignUpRequest):
+@app.post("/api/conversations")
+async def create_conversation(request: Request):
     try:
-        res = supabase.auth.sign_up({"email": req.email, "password": req.password})
-        return {"user": res.user.email if res.user else None}
+        body = await request.json()
+        token = body.get("user_token", "")
+        title = body.get("title", "New Consultation")
+        user = supabase.auth.get_user(token)
+        if not user.user:
+            raise HTTPException(status_code=401, detail="Unauthorized")
+        result = supabase.table("conversations").insert({
+            "user_id": user.user.id,
+            "title": title
+        }).execute()
+        return {"conversation_id": result.data[0]["id"]}
     except Exception as e:
         raise HTTPException(status_code=400, detail=str(e))
 
-@app.post("/api/auth/signin")
-async def signin(req: SignInRequest):
+@app.get("/api/conversations")
+async def get_conversations(token: str = ""):
     try:
-        res = supabase.auth.sign_in_with_password({"email": req.email, "password": req.password})
-        return {"access_token": res.session.access_token, "user": res.user.email}
-    except Exception as e:
-        raise HTTPException(status_code=400, detail=str(e))
-
-@app.post("/api/auth/signout")
-async def signout():
-    try:
-        supabase.auth.sign_out()
-        return {"message": "Signed out"}
+        user = supabase.auth.get_user(token)
+        if not user.user:
+            raise HTTPException(status_code=401, detail="Unauthorized")
+        result = supabase.table("conversations").select("*").eq("user_id", user.user.id).order("created_at", desc=True).execute()
+        return {"conversations": result.data}
     except Exception as e:
         raise HTTPException(status_code=400, detail=str(e))
 
