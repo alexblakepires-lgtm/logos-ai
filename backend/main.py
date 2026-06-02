@@ -223,7 +223,12 @@ async def chat(req: ChatRequest):
         # Save to Supabase if user is logged in
         if req.user_token and req.conversation_id:
             try:
-                supabase.postgrest.auth(req.user_token)
+                supabase.auth.get_user(req.user_token)
+                supabase.table("messages").insert({
+                    "conversation_id": req.conversation_id,
+                    "role": "user",
+                    "content": last_user
+                }).execute()
                 supabase.table("messages").insert({
                     "conversation_id": req.conversation_id,
                     "role": "assistant",
