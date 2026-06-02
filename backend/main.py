@@ -322,14 +322,14 @@ async def create_conversation(request: Request):
         token = body.get("user_token", "")
         title = body.get("title", "New Consultation")
         user = supabase.auth.get_user(token)
-        if not user.user:
-            raise HTTPException(status_code=401, detail="Unauthorized")
+        user_id = user.user.id
         result = supabase.table("conversations").insert({
-            "user_id": user.user.id,
+            "user_id": user_id,
             "title": title
         }).execute()
         return {"conversation_id": result.data[0]["id"]}
     except Exception as e:
+        print(f"⚠️ Conversation error: {e}")
         raise HTTPException(status_code=400, detail=str(e))
 
 @app.get("/api/conversations")
