@@ -328,10 +328,12 @@ async def create_conversation(request: Request):
         title = body.get("title", "New Consultation")
         user = supabase.auth.get_user(token)
         user_id = user.user.id
+        print(f"Creating conversation for user: {user_id}, title: {title}")
         result = supabase.table("conversations").insert({
             "user_id": user_id,
             "title": title
         }).execute()
+        print(f"Result: {result.data}")
         return {"conversation_id": result.data[0]["id"]}
     except Exception as e:
         print(f"⚠️ Conversation error: {e}")
