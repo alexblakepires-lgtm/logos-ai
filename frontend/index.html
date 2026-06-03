@@ -205,6 +205,20 @@
 .conv-date { font-size:10px; color:var(--muted); margin-top:2px; letter-spacing:0.5px; }
 .sidebar-btn { background:none; border:none; cursor:pointer; color:rgba(184,146,42,0.8); font-size:18px; padding:4px 8px; }
 
+/* ── DISCLAIMER ── */
+.disclaimer-screen { position:fixed; inset:0; background:var(--cream); z-index:200; display:flex; flex-direction:column; align-items:center; justify-content:center; padding:24px; }
+.disclaimer-box { max-width:480px; width:100%; }
+.disclaimer-icon { width:64px; height:64px; background:rgba(139,58,42,0.1); border-radius:50%; display:flex; align-items:center; justify-content:center; margin:0 auto 20px; font-size:28px; }
+.disclaimer-title { font-family:'Cormorant Garamond',serif; font-size:28px; font-weight:300; color:var(--ink); text-align:center; margin-bottom:20px; }
+.disclaimer-content { background:var(--parchment); border-radius:12px; padding:20px; margin-bottom:16px; }
+.disclaimer-content p { font-size:13px; color:var(--muted); line-height:1.7; margin-bottom:14px; }
+.disclaimer-content ul { list-style:disc; padding-left:18px; }
+.disclaimer-content li { font-size:13px; color:var(--muted); line-height:1.7; margin-bottom:10px; }
+.disclaimer-emergency { background:rgba(139,58,42,0.08); border:1px solid rgba(139,58,42,0.2); border-radius:8px; padding:12px 16px; display:flex; align-items:flex-start; gap:10px; margin-top:12px; }
+.disclaimer-emergency p { font-size:12px; color:var(--rust); margin:0; font-weight:600; letter-spacing:0.3px; }
+.disclaimer-agree-btn { width:100%; padding:16px; background:var(--forest); color:var(--cream); border:none; border-radius:12px; cursor:pointer; font-family:'Josefin Sans',sans-serif; font-size:12px; letter-spacing:3px; text-transform:uppercase; transition:background 0.2s; margin-top:8px; }
+.disclaimer-agree-btn:hover { background:var(--moss); }
+
   </style>
 </head>
 <body>
@@ -424,10 +438,11 @@ function App() {
   const [authLoading, setAuthLoading] = useState(false);
   const [authError, setAuthError] = useState('');
   const [conversationId, setConversationId] = useState('');
+  const [showDisclaimer, setShowDisclaimer] = useState(false);
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [conversations, setConversations] = useState([]);
   const [activeConvId, setActiveConvId] = useState('');
-  
+
 
   const handleAuth = async () => {
     setAuthLoading(true); setAuthError('');
@@ -467,6 +482,15 @@ const [msgs, setMsgs] = useState([{ role:'assistant', content: getGreeting(auth)
 const [input, setInput] = useState('');
 const [loading, setLoading] = useState(false);
 const [error, setError] = useState('');
+const [recording, setRecording] = useState(false);
+const [audioBlob, setAudioBlob] = useState(null);
+const [audioUrl, setAudioUrl] = useState(null);
+const [analysis, setAnalysis] = useState(null);
+const [result, setResult] = useState('');
+const [analyzing, setAnalyzing] = useState(false);
+const [recTime, setRecTime] = useState(0);
+const [bars, setBars] = useState(Array(36).fill(3));
+const [micError, setMicError] = useState('');
 
 useEffect(() => {
   setMsgs([{ role:'assistant', content: getGreeting(auth) }]);
@@ -500,18 +524,23 @@ const newChat = () => {
   setConversationId('');
   setActiveConvId('');
   setSidebarOpen(false);
+  fetchConversations();
 };
 
-// Cough state
-  const [recording, setRecording] = useState(false);
-  const [audioBlob, setAudioBlob] = useState(null);
-  const [audioUrl, setAudioUrl] = useState(null);
-  const [analysis, setAnalysis] = useState(null);
-  const [result, setResult] = useState('');
-  const [analyzing, setAnalyzing] = useState(false);
-  const [recTime, setRecTime] = useState(0);
-  const [bars, setBars] = useState(Array(36).fill(3));
-  const [micError, setMicError] = useState('');
+const acceptDisclaimer = async () => {
+  try {
+    await fetch('/api/profile/disclaimer', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ token: auth.token })
+    });
+    const updated = { ...auth, disclaimerAccepted: true };
+    localStorage.setItem('logos_auth', JSON.stringify(updated));
+    setAuth(updated);
+    setShowDisclaimer(false);
+  } catch(e) { console.error(e); }
+};
+
 
   const mrRef = useRef(null);
   const streamRef = useRef(null);
@@ -524,6 +553,24 @@ const newChat = () => {
   
 
   useEffect(() => { endRef.current?.scrollIntoView({ behavior: 'smooth' }); }, [msgs]);
+  
+  useEffect(() => {
+  if (!auth?.token || !auth?.email || auth?.email === 'guest') return;
+  if (auth?.disclaimerAccepted) return;
+  const checkDisclaimer = async () => {
+    try {
+      const res = await fetch(`/api/profile/disclaimer?token=${auth.token}`);
+      const data = await res.json();
+      if (!data.accepted) setShowDisclaimer(true);
+      else {
+        const updated = { ...auth, disclaimerAccepted: true };
+        localStorage.setItem('logos_auth', JSON.stringify(updated));
+        setAuth(updated);
+      }
+    } catch(e) { console.error(e); }
+  };
+  checkDisclaimer();
+}, [auth?.token]);
 
   // ── Chat ──
    const send = useCallback(async (text) => {
@@ -728,6 +775,32 @@ const loginScreen = (
     ))}
   </div>
 </div>
+{showDisclaimer && (
+        <div className="disclaimer-screen">
+          <div className="disclaimer-box">
+            <div className="disclaimer-icon">🛡️</div>
+            <div className="disclaimer-title">Important Notice</div>
+            <div className="disclaimer-content">
+              <p>Logos is an informational tool only. It does <strong>not</strong> provide medical advice, diagnoses, or prescriptions.</p>
+              <p><strong>By using this app, you acknowledge that:</strong></p>
+              <ul>
+                <li>Remedy suggestions are for informational purposes only, based on traditional homeopathic principles. These are not scientifically validated medical treatments.</li>
+                <li>Logos is NOT a substitute for professional medical advice, diagnosis, or treatment. Never disregard or delay seeking medical advice because of information from this app.</li>
+                <li>No doctor-patient or practitioner-client relationship is created between you and Satya11 LLC.</li>
+                <li>You assume full responsibility for health decisions made based on this app's suggestions. Satya11 LLC shall not be liable for any adverse outcomes.</li>
+              </ul>
+              <div className="disclaimer-emergency">
+                <span>⚠️</span>
+                <p>IN CASE OF EMERGENCY, call your local emergency services immediately.</p>
+              </div>
+            </div>
+            <button className="disclaimer-agree-btn" onClick={acceptDisclaimer}>
+              I Understand and Agree
+            </button>
+          </div>
+        </div>
+      )}
+
       <header className="header">
         <div className="header-inner">
           <button className="sidebar-btn" onClick={()=>{ setSidebarOpen(true); fetchConversations(); }}>☰</button>

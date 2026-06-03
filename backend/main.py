@@ -402,6 +402,31 @@ async def get_messages(conversation_id: str, token: str = ""):
     except Exception as e:
         raise HTTPException(status_code=400, detail=str(e))
 
+@app.get("/api/profile/disclaimer")
+async def get_disclaimer(token: str = ""):
+    try:
+        user = supabase.auth.get_user(token)
+        if not user.user:
+            raise HTTPException(status_code=401, detail="Unauthorized")
+        result = supabase_admin.table("profiles").select("disclaimer_accepted").eq("id", user.user.id).single().execute()
+        accepted = result.data.get("disclaimer_accepted", False) if result.data else False
+        return {"accepted": accepted}
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=str(e))
+
+@app.post("/api/profile/disclaimer")
+async def accept_disclaimer(request: Request):
+    try:
+        body = await request.json()
+        token = body.get("token", "")
+        user = supabase.auth.get_user(token)
+        if not user.user:
+            raise HTTPException(status_code=401, detail="Unauthorized")
+        supabase_admin.table("profiles").update({"disclaimer_accepted": True}).eq("id", user.user.id).execute()
+        return {"accepted": True}
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=str(e))
+
 # ── Serve frontend (must be last) ──────────────────────────────────────────
 if Path(FRONT_DIR).exists():
     app.mount("/", StaticFiles(directory=FRONT_DIR, html=True), name="frontend")
