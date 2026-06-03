@@ -2,6 +2,8 @@
 data/chroma_db/
 data/*.pdf
 data/conversations.json
+data/*.txt
+data/*.zip
 
 # Python
 __pycache__/
