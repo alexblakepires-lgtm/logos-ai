@@ -32,6 +32,7 @@
       color: var(--cream); letter-spacing: 2px; line-height: 1; }
     .brand-sub { font-size: 10px; letter-spacing: 3px; color: var(--amber); text-transform: uppercase; margin-top: 3px; }
     .tabs { display: flex; background: var(--parchment); border-bottom: 2px solid var(--border); flex-shrink: 0; }
+    .trial-banner { background: rgba(44,74,46,0.1); color: var(--forest); font-family: 'Josefin Sans', sans-serif; font-size: 11px; letter-spacing: 1px; text-align: center; padding: 7px 12px; border-bottom: 1px solid var(--border); flex-shrink: 0; }
     .tabs-inner { max-width: 800px; width: 100%; margin: 0 auto; display: flex; }
     .tab { flex: 1; padding: 13px 20px; background: none; border: none; cursor: pointer;
       font-family: 'Josefin Sans', sans-serif; font-size: 11px; letter-spacing: 2px;
@@ -457,6 +458,7 @@ async function callAPI(messages, userToken = '', conversationId = '', userRole =
     body: JSON.stringify({ messages, browser_lang: browserLang, user_token: userToken, conversation_id: conversationId, user_role: userRole })
   });
   const data = await res.json();
+  if (!res.ok) throw new Error(data.detail || (typeof data.error === 'string' ? data.error : data.error?.message) || 'Request failed');
   if (data.error) throw new Error(typeof data.error === 'string' ? data.error : data.error.message);
   return data.content[0].text;
 }
@@ -491,6 +493,17 @@ function App() {
   const [convMeta, setConvMeta] = useState(() => {
     try { return JSON.parse(localStorage.getItem('logos_conv_meta') || '{}'); } catch { return {}; }
   });
+  const [trialConfig, setTrialConfig] = useState({ enforcement: false, guestLimit: 5, trialDays: 3 });
+  const [guestMsgs, setGuestMsgs] = useState(() => {
+    try { return parseInt(localStorage.getItem('logos_guest_msgs') || '0', 10) || 0; } catch { return 0; }
+  });
+  useEffect(() => {
+    fetch('/api/health').then(r => r.json()).then(d => setTrialConfig({
+      enforcement: !!d.trial_enforcement,
+      guestLimit: d.guest_message_limit || 5,
+      trialDays: d.trial_days || 3,
+    })).catch(() => {});
+  }, []);
 
 
   const handleAuth = async () => {
@@ -508,7 +521,7 @@ function App() {
       const data = await res.json();
       if (data.detail) throw new Error(data.detail);
       if (authMode === 'signin') {
-        const authData = { token: data.access_token, email: data.user, role: data.role || 'client', full_name: data.full_name || '' };
+        const authData = { token: data.access_token, email: data.user, role: data.role || 'client', full_name: data.full_name || '', trial_started_at: data.trial_started_at || null, subscribed: !!data.subscribed };
         localStorage.setItem('logos_auth', JSON.stringify(authData));
         setAuth(authData);
       } else {
@@ -520,7 +533,7 @@ function App() {
       });
       const signInData = await signInRes.json();
       if (signInData.detail) throw new Error(signInData.detail);
-      const authData = { token: signInData.access_token, email: signInData.user, role: signInData.role || 'client', full_name: signInData.full_name || '' };
+      const authData = { token: signInData.access_token, email: signInData.user, role: signInData.role || 'client', full_name: signInData.full_name || '', trial_started_at: signInData.trial_started_at || null, subscribed: !!signInData.subscribed };
       localStorage.setItem('logos_auth', JSON.stringify(authData));
       setAuth(authData);
       }
@@ -721,6 +734,15 @@ const acceptDisclaimer = async () => {
    const send = useCallback(async (text) => {
     const t = text || input.trim();
     if (!t || loading) return;
+    const isGuest = !auth?.token || auth?.email === 'guest';
+    if (trialConfig.enforcement && isGuest && guestMsgs >= trialConfig.guestLimit) {
+      setInput('');
+      setMsgs(p => [...p,
+        { role: 'user', content: t },
+        { role: 'assistant', content: `🌿 You've reached the ${trialConfig.guestLimit}-message guest limit. Please create a free account to continue with Logos.` }
+      ]);
+      return;
+    }
     setInput(''); setError('');
     const next = [...msgs, { role: 'user', content: t }];
     setMsgs(next);
@@ -742,11 +764,16 @@ const acceptDisclaimer = async () => {
       }
       const reply = await callAPI(next.map(m => ({ role: m.role, content: m.content })), auth?.token || '', convId || '', auth?.role || 'client');
       setMsgs(p => [...p, { role: 'assistant', content: reply }]);
+      if (isGuest) {
+        const n = guestMsgs + 1;
+        setGuestMsgs(n);
+        try { localStorage.setItem('logos_guest_msgs', String(n)); } catch {}
+      }
     } catch (e) {
       setError(e.message);
       setMsgs(p => [...p, { role: 'assistant', content: `⚠️ **Error:** ${e.message}\n\nMake sure your server is running and the API key is set in the .env file.` }]);
     } finally { setLoading(false); }
-  }, [input, msgs, loading]);
+  }, [input, msgs, loading, auth, trialConfig, guestMsgs]);
 
   // ── Record ──
   const startRec = async () => {
@@ -1083,6 +1110,19 @@ const loginScreen = (
           <button className={`tab ${tab==='cough'?'active':''}`} onClick={()=>setTab('cough')}>🎙 Cough Analyzer</button>
         </div>
       </div>
+
+      {trialConfig.enforcement && auth?.token && auth?.email !== 'guest' && !auth?.subscribed && (() => {
+        const start = auth.trial_started_at ? new Date(auth.trial_started_at).getTime() : Date.now();
+        const used = Math.floor((Date.now() - start) / 86400000);
+        const left = Math.max(0, trialConfig.trialDays - used);
+        return (
+          <div className="trial-banner">
+            {left > 0
+              ? `🌿 Free trial — ${left} day${left === 1 ? '' : 's'} remaining`
+              : '🌿 Your free trial has ended — subscribe to continue'}
+          </div>
+        );
+      })()}
 
       <div className="main">
         <div className="panel">

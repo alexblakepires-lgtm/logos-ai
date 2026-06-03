@@ -3,7 +3,7 @@ import json
 import asyncio
 import httpx
 from pathlib import Path
-from datetime import datetime
+from datetime import datetime, timedelta, timezone
 from contextlib import asynccontextmanager
 
 from fastapi import FastAPI, HTTPException, Request, BackgroundTasks
@@ -17,6 +17,13 @@ from supabase import create_client, Client
 from rag import MaterialMedicaRAG
 
 load_dotenv()
+
+# ── Trial / subscription config ──────────────────────────────────────────────
+# Master switch: when False, ALL trial checks are skipped (Logos is free for
+# everyone). Flip to True and redeploy to start enforcing the free trial.
+TRIAL_ENFORCEMENT = False
+TRIAL_DAYS = 3                # length of the free trial, in days
+GUEST_MESSAGE_LIMIT = 5       # messages a guest (no account) gets per session
 
 # ── Supabase ───────────────────────────────────────────────────────────────
 SUPABASE_URL = os.getenv("SUPABASE_URL", "")
@@ -63,6 +70,38 @@ def get_full_name(user_id: str) -> str:
     except Exception as e:
         print(f"⚠️ Name fetch error: {e}")
         return ""
+
+def get_trial_info(user_id: str) -> dict:
+    """Return the user's trial state, starting the trial on first call.
+
+    Defensive: if the trial columns don't exist yet (pre-migration) or the
+    lookup fails, returns neutral defaults so the app keeps working."""
+    try:
+        result = supabase_admin.table("profiles").select("trial_started_at, subscribed").eq("id", user_id).single().execute()
+        data = result.data or {}
+        started = data.get("trial_started_at")
+        subscribed = bool(data.get("subscribed"))
+        if not started:
+            started = datetime.now(timezone.utc).isoformat()
+            supabase_admin.table("profiles").update({"trial_started_at": started}).eq("id", user_id).execute()
+        return {"trial_started_at": started, "subscribed": subscribed}
+    except Exception as e:
+        print(f"⚠️ Trial info error: {e}")
+        return {"trial_started_at": None, "subscribed": False}
+
+def trial_active(trial_started_at, subscribed) -> bool:
+    """True if the user may still chat: subscribed, or within the trial window."""
+    if subscribed:
+        return True
+    if not trial_started_at:
+        return True
+    try:
+        start = datetime.fromisoformat(str(trial_started_at).replace("Z", "+00:00"))
+        if start.tzinfo is None:
+            start = start.replace(tzinfo=timezone.utc)
+        return datetime.now(timezone.utc) - start < timedelta(days=TRIAL_DAYS)
+    except Exception:
+        return True  # fail open on parse issues
 
 # ── Paths ──────────────────────────────────────────────────────────────────
 BASE_DIR      = Path(__file__).parent.parent
@@ -252,11 +291,29 @@ class SignInRequest(BaseModel):
 # ── Routes ─────────────────────────────────────────────────────────────────
 @app.get("/api/health")
 async def health():
-    return {"status": "ok", "model": "anthropic" if USE_ANTHROPIC else MODEL}
+    return {
+        "status": "ok",
+        "model": "anthropic" if USE_ANTHROPIC else MODEL,
+        "trial_enforcement": TRIAL_ENFORCEMENT,
+        "trial_days": TRIAL_DAYS,
+        "guest_message_limit": GUEST_MESSAGE_LIMIT,
+    }
 
 
 @app.post("/api/chat")
 async def chat(req: ChatRequest):
+    # Free-trial gate for signed-in users (guests are limited client-side).
+    if TRIAL_ENFORCEMENT and req.user_token:
+        try:
+            user = supabase.auth.get_user(req.user_token)
+            uid = user.user.id if user and user.user else None
+        except Exception:
+            uid = None
+        if uid:
+            info = get_trial_info(uid)
+            if not trial_active(info["trial_started_at"], info["subscribed"]):
+                raise HTTPException(status_code=402, detail="Your free trial has ended")
+
     last_user = next(
         (m.content for m in reversed(req.messages) if m.role == "user"), ""
     )
@@ -399,11 +456,14 @@ async def signin(req: SignInRequest):
         res = supabase.auth.sign_in_with_password({"email": req.email, "password": req.password})
         role = get_user_role(res.user.id)
         full_name = get_full_name(res.user.id)
+        trial = get_trial_info(res.user.id)  # starts the trial on first sign-in
         return {
             "access_token": res.session.access_token,
             "user": res.user.email,
             "role": role,
-            "full_name": full_name
+            "full_name": full_name,
+            "trial_started_at": trial["trial_started_at"],
+            "subscribed": trial["subscribed"]
         }
     except Exception as e:
         raise HTTPException(status_code=400, detail=str(e))
