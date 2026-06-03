@@ -182,7 +182,7 @@
   textarea { background: #2a2a20; color: var(--ink); }
   .card { background: #2a2a20; }
   .upload-zone { background: #2a2a20; }
-  .brand-name { color: var(--cream); }
+  .brand-name { color: #f5f0e8; }
   .brand-sub { color: var(--amber); }
   .tab { color: var(--muted); }
   .tab.active { color: var(--amber); }
@@ -888,7 +888,7 @@ const loginScreen = (
       className="send-btn"
       onClick={()=>send()}
       disabled={loading||!input.trim()}
-      style={{position:'absolute', right:'8px', bottom:'8px', width:'36px', height:'36px', borderRadius:'50%', padding:'2px', minWidth:'unset', display:'flex', alignItems:'center', justifyContent:'center'}}
+      style={{position:'absolute', right:'8px', bottom:'10px', width:'36px', height:'36px', borderRadius:'50%', padding:0, minWidth:'unset', display:'flex', alignItems:'center', justifyContent:'center', lineHeight:"1"}}
     >
       {loading ? '…' : (
   <svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
