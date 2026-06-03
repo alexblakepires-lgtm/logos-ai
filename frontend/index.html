@@ -508,9 +508,10 @@ useEffect(() => {
 }, [auth]);
 
 const fetchConversations = useCallback(async () => {
-  if (!auth?.token) return;
+  if (!auth?.token || auth?.email === 'guest') return;
   try {
     const res = await fetch(`/api/conversations?token=${auth.token}`);
+    if (!res.ok) return;
     const data = await res.json();
     setConversations(data.conversations || []);
   } catch(e) { console.error(e); }
