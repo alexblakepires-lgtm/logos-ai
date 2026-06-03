@@ -190,6 +190,7 @@ async def terms():
 async def privacy():
     return FileResponse("frontend/privacy.html")
 
+
 # ── Models ─────────────────────────────────────────────────────────────────
 class Message(BaseModel):
     role: str
