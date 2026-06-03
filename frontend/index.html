@@ -460,15 +460,24 @@ function App() {
         localStorage.setItem('logos_auth', JSON.stringify(authData));
         setAuth(authData);
       } else {
-        setAuthError('Account created! Please check your email to confirm, then sign in.');
-        setAuthMode('signin');
+        // Auto sign in after signup
+        const signInRes = await fetch('/api/auth/signin', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ email: authEmail, password: authPassword })
+      });
+      const signInData = await signInRes.json();
+      if (signInData.detail) throw new Error(signInData.detail);
+      const authData = { token: signInData.access_token, email: signInData.user, role: signInData.role || 'client' };
+      localStorage.setItem('logos_auth', JSON.stringify(authData));
+      setAuth(authData);
       }
     } catch(e) {
       setAuthError(e.message);
     } finally {
       setAuthLoading(false);
     }
-  };
+    };
 
   const getGreeting = (auth) => {
   if (!auth || !auth.role) return 'Welcome. I am Logos, your Homeopathic Assistant.\n\nDescribe your symptoms for **remedy recommendations**, explore specific remedies.\n\nHow may I help you today?';
