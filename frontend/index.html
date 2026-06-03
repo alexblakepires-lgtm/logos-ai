@@ -186,6 +186,25 @@
   .tab.active { color: var(--amber); }
   .send-btn { background: var(--sage); color: #fff; }
 }
+
+/* ── SIDEBAR ── */
+.sidebar-overlay { position:fixed; inset:0; background:rgba(0,0,0,0.3); z-index:100; opacity:0; pointer-events:none; transition:opacity 0.2s; }
+.sidebar-overlay.open { opacity:1; pointer-events:all; }
+.sidebar { position:fixed; top:0; left:0; height:100vh; width:280px; background:var(--parchment); border-right:1px solid var(--border); z-index:101; transform:translateX(-100%); transition:transform 0.25s ease; display:flex; flex-direction:column; }
+.sidebar.open { transform:translateX(0); }
+.sidebar-header { padding:18px 16px; border-bottom:1px solid var(--border); display:flex; align-items:center; justify-content:space-between; flex-shrink:0; }
+.sidebar-title { font-family:'Cormorant Garamond',serif; font-size:18px; font-weight:300; color:var(--forest); }
+.sidebar-close { background:none; border:none; cursor:pointer; font-size:18px; color:var(--muted); padding:4px; }
+.new-chat-btn { margin:12px; padding:10px; background:var(--forest); color:var(--cream); border:none; border-radius:8px; cursor:pointer; font-family:'Josefin Sans',sans-serif; font-size:11px; letter-spacing:2px; text-transform:uppercase; transition:background 0.2s; }
+.new-chat-btn:hover { background:var(--moss); }
+.conv-list { flex:1; overflow-y:auto; padding:8px; }
+.conv-item { padding:10px 12px; border-radius:8px; cursor:pointer; transition:background 0.15s; margin-bottom:2px; }
+.conv-item:hover { background:rgba(44,74,46,0.08); }
+.conv-item.active { background:rgba(44,74,46,0.12); }
+.conv-title { font-size:12px; color:var(--ink); letter-spacing:0.3px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+.conv-date { font-size:10px; color:var(--muted); margin-top:2px; letter-spacing:0.5px; }
+.sidebar-btn { background:none; border:none; cursor:pointer; color:rgba(184,146,42,0.8); font-size:18px; padding:4px 8px; }
+
   </style>
 </head>
 <body>
@@ -405,6 +424,12 @@ function App() {
   const [authLoading, setAuthLoading] = useState(false);
   const [authError, setAuthError] = useState('');
   const [conversationId, setConversationId] = useState('');
+  const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [conversations, setConversations] = useState([]);
+  const [activeConvId, setActiveConvId] = useState('');
+  const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [conversations, setConversations] = useState([]);
+  const [activeConvId, setActiveConvId] = useState('');
 
   const handleAuth = async () => {
     setAuthLoading(true); setAuthError('');
@@ -432,8 +457,6 @@ function App() {
     }
   };
 
-  
-  
   const getGreeting = (auth) => {
   if (!auth || !auth.role) return 'Welcome. I am Logos, your Homeopathic Assistant.\n\nDescribe your symptoms for **remedy recommendations**, explore specific remedies.\n\nHow may I help you today?';
   if (auth.role === 'admin') return 'Welcome back, Alexandre. 🌿\n\nYou have full admin access. How can I assist you today?';
@@ -442,22 +465,46 @@ function App() {
   return 'Welcome. I am Logos, your Homeopathic Assistant.\n\nDescribe your symptoms for **remedy recommendations**, explore specific remedies.\n\nHow may I help you today?';
 };
 
-const [msgs, setMsgs] = useState([{
-  role: 'assistant',
-  content: getGreeting(auth)
-}]);
+const [msgs, setMsgs] = useState([{ role:'assistant', content: getGreeting(auth) }]);
+const [input, setInput] = useState('');
+const [loading, setLoading] = useState(false);
+const [error, setError] = useState('');
 
 useEffect(() => {
-  setMsgs([{
-    role: 'assistant',
-    content: getGreeting(auth)
-  }]);
+  setMsgs([{ role:'assistant', content: getGreeting(auth) }]);
 }, [auth]);
-  const [input, setInput] = useState('');
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState('');
 
-  // Cough state
+const fetchConversations = useCallback(async () => {
+  if (!auth?.token) return;
+  try {
+    const res = await fetch(`/api/conversations?token=${auth.token}`);
+    const data = await res.json();
+    setConversations(data.conversations || []);
+  } catch(e) { console.error(e); }
+}, [auth]);
+
+useEffect(() => { fetchConversations(); }, [fetchConversations]);
+
+const loadConversation = async (conv) => {
+  try {
+    const res = await fetch(`/api/conversations/${conv.id}/messages?token=${auth.token}`);
+    const data = await res.json();
+    const loaded = data.messages.map(m => ({ role: m.role, content: m.content }));
+    setMsgs([{ role:'assistant', content: getGreeting(auth) }, ...loaded]);
+    setConversationId(conv.id);
+    setActiveConvId(conv.id);
+    setSidebarOpen(false);
+  } catch(e) { console.error(e); }
+};
+
+const newChat = () => {
+  setMsgs([{ role:'assistant', content: getGreeting(auth) }]);
+  setConversationId('');
+  setActiveConvId('');
+  setSidebarOpen(false);
+};
+
+// Cough state
   const [recording, setRecording] = useState(false);
   const [audioBlob, setAudioBlob] = useState(null);
   const [audioUrl, setAudioUrl] = useState(null);
@@ -475,6 +522,8 @@ useEffect(() => {
   const analyserRef = useRef(null);
   const endRef = useRef(null);
   const fileRef = useRef(null);
+  const lastEnterRef = useRef(0);
+  
 
   useEffect(() => { endRef.current?.scrollIntoView({ behavior: 'smooth' }); }, [msgs]);
 
@@ -662,8 +711,28 @@ const loginScreen = (
 
   return (
     <div className="app">
+      <div className={`sidebar-overlay ${sidebarOpen?'open':''}`} onClick={()=>setSidebarOpen(false)} />
+<div className={`sidebar ${sidebarOpen?'open':''}`}>
+  <div className="sidebar-header">
+    <div className="sidebar-title">Consultations</div>
+    <button className="sidebar-close" onClick={()=>setSidebarOpen(false)}>✕</button>
+  </div>
+  <button className="new-chat-btn" onClick={newChat}>+ New Consultation</button>
+  <div className="conv-list">
+    {conversations.length === 0 && (
+      <div style={{padding:'20px 12px', fontSize:'12px', color:'var(--muted)', textAlign:'center'}}>No past consultations yet</div>
+    )}
+    {conversations.map(c => (
+      <div key={c.id} className={`conv-item ${activeConvId===c.id?'active':''}`} onClick={()=>loadConversation(c)}>
+        <div className="conv-title">{c.title || 'Consultation'}</div>
+        <div className="conv-date">{new Date(c.created_at).toLocaleDateString()}</div>
+      </div>
+    ))}
+  </div>
+</div>
       <header className="header">
         <div className="header-inner">
+          <button className="sidebar-btn" onClick={()=>{ setSidebarOpen(true); fetchConversations(); }}>☰</button>
   <div className="brand-icon">🌿</div>
   <div style={{flex:1}}>
     <div className="brand-name" translate="no">Logos</div>
