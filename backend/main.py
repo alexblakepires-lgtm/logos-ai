@@ -56,6 +56,14 @@ def get_user_role(user_id: str) -> str:
         print(f"⚠️ Role fetch error: {e}")
         return "client"
 
+def get_full_name(user_id: str) -> str:
+    try:
+        result = supabase_admin.table("profiles").select("full_name").eq("id", user_id).single().execute()
+        return (result.data.get("full_name") or "") if result.data else ""
+    except Exception as e:
+        print(f"⚠️ Name fetch error: {e}")
+        return ""
+
 # ── Paths ──────────────────────────────────────────────────────────────────
 BASE_DIR      = Path(__file__).parent.parent
 PDF_PATHS     = [
@@ -235,6 +243,7 @@ class CoughRequest(BaseModel):
 class SignUpRequest(BaseModel):
     email: str
     password: str
+    full_name: str = ""
 
 class SignInRequest(BaseModel):
     email: str
@@ -373,6 +382,13 @@ Based on these acoustic characteristics:
 async def signup(req: SignUpRequest):
     try:
         res = supabase.auth.sign_up({"email": req.email, "password": req.password})
+        if res.user and req.full_name.strip():
+            try:
+                supabase_admin.table("profiles").update(
+                    {"full_name": req.full_name.strip()}
+                ).eq("id", res.user.id).execute()
+            except Exception as e:
+                print(f"⚠️ full_name save error: {e}")
         return {"user": res.user.email if res.user else None}
     except Exception as e:
         raise HTTPException(status_code=400, detail=str(e))
@@ -382,10 +398,12 @@ async def signin(req: SignInRequest):
     try:
         res = supabase.auth.sign_in_with_password({"email": req.email, "password": req.password})
         role = get_user_role(res.user.id)
+        full_name = get_full_name(res.user.id)
         return {
             "access_token": res.session.access_token,
             "user": res.user.email,
-            "role": role
+            "role": role,
+            "full_name": full_name
         }
     except Exception as e:
         raise HTTPException(status_code=400, detail=str(e))
