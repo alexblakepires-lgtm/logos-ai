@@ -1,0 +1,385 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Privacy Policy — Logos AI</title>
+<style>
+  :root {
+    --bg: #0d1610;
+    --bg-card: #111a13;
+    --bg-surface: #162019;
+    --text-primary: #f0ebe0;
+    --text-secondary: #9aaa8e;
+    --text-muted: #5a6b50;
+    --accent: #4a8c5c;
+    --accent-light: #7ab88a;
+    --border: rgba(74, 140, 92, 0.18);
+    --border-soft: rgba(240, 235, 224, 0.07);
+    --font-serif: 'Georgia', 'Times New Roman', serif;
+    --font-sans: 'Segoe UI', system-ui, sans-serif;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html { scroll-behavior: smooth; }
+  body {
+    background: var(--bg);
+    color: var(--text-primary);
+    font-family: var(--font-sans);
+    font-size: 16px;
+    line-height: 1.75;
+    min-height: 100vh;
+  }
+  .header {
+    border-bottom: 1px solid var(--border);
+    padding: 2rem 2rem 1.5rem;
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    background: var(--bg-card);
+  }
+  .logo-mark {
+    width: 36px; height: 36px;
+    border-radius: 50%;
+    border: 1.5px solid var(--accent);
+    display: flex; align-items: center; justify-content: center;
+    font-family: var(--font-serif);
+    font-size: 16px;
+    color: var(--accent-light);
+    flex-shrink: 0;
+  }
+  .header-text h1 {
+    font-family: var(--font-serif);
+    font-size: 1.1rem;
+    font-weight: normal;
+    color: var(--accent-light);
+    letter-spacing: 0.04em;
+  }
+  .header-text p {
+    font-size: 0.75rem;
+    color: var(--text-muted);
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+  }
+  .container {
+    max-width: 780px;
+    margin: 0 auto;
+    padding: 3rem 2rem 5rem;
+  }
+  .doc-header {
+    margin-bottom: 3rem;
+    padding-bottom: 2rem;
+    border-bottom: 1px solid var(--border-soft);
+  }
+  .doc-header h2 {
+    font-family: var(--font-serif);
+    font-size: 2rem;
+    font-weight: normal;
+    color: var(--text-primary);
+    margin-bottom: 0.5rem;
+  }
+  .doc-header .effective {
+    font-size: 0.82rem;
+    color: var(--text-muted);
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+  }
+  .intro-note {
+    background: var(--bg-surface);
+    border-left: 3px solid var(--accent);
+    border-radius: 0 8px 8px 0;
+    padding: 1.25rem 1.5rem;
+    margin-bottom: 2.5rem;
+    font-size: 0.9rem;
+    color: var(--text-secondary);
+    line-height: 1.7;
+  }
+  .section {
+    margin-bottom: 2.5rem;
+  }
+  .section h3 {
+    font-family: var(--font-serif);
+    font-size: 1.1rem;
+    font-weight: normal;
+    color: var(--accent-light);
+    margin-bottom: 0.75rem;
+    padding-bottom: 0.4rem;
+    border-bottom: 1px solid var(--border);
+    letter-spacing: 0.02em;
+  }
+  .section p {
+    color: var(--text-secondary);
+    margin-bottom: 0.85rem;
+    font-size: 0.93rem;
+  }
+  .section ul {
+    padding-left: 1.25rem;
+    color: var(--text-secondary);
+    font-size: 0.93rem;
+  }
+  .section ul li {
+    margin-bottom: 0.5rem;
+    padding-left: 0.25rem;
+  }
+  .data-table {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 1rem 0;
+    font-size: 0.88rem;
+  }
+  .data-table th {
+    text-align: left;
+    padding: 0.6rem 1rem;
+    background: var(--bg-surface);
+    color: var(--text-muted);
+    font-weight: normal;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+    font-size: 0.75rem;
+    border-bottom: 1px solid var(--border);
+  }
+  .data-table td {
+    padding: 0.7rem 1rem;
+    color: var(--text-secondary);
+    border-bottom: 1px solid var(--border-soft);
+    vertical-align: top;
+  }
+  .data-table tr:last-child td { border-bottom: none; }
+  .highlight-box {
+    background: rgba(74, 140, 92, 0.08);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 1.25rem 1.5rem;
+    margin: 1rem 0;
+  }
+  .highlight-box p {
+    font-size: 0.88rem;
+    color: var(--text-secondary);
+    margin: 0;
+  }
+  .rights-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 1rem;
+    margin: 1rem 0;
+  }
+  .right-card {
+    background: var(--bg-surface);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 1rem 1.25rem;
+  }
+  .right-card h4 {
+    font-size: 0.85rem;
+    color: var(--accent-light);
+    margin-bottom: 0.4rem;
+    font-weight: 500;
+  }
+  .right-card p {
+    font-size: 0.82rem;
+    color: var(--text-muted);
+    margin: 0;
+  }
+  .contact-block {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 1.5rem;
+    margin-top: 3rem;
+  }
+  .contact-block h4 {
+    font-family: var(--font-serif);
+    color: var(--accent-light);
+    font-weight: normal;
+    margin-bottom: 0.75rem;
+    font-size: 1rem;
+  }
+  .contact-block p {
+    font-size: 0.88rem;
+    color: var(--text-secondary);
+    margin-bottom: 0.4rem;
+  }
+  .contact-block a { color: var(--accent-light); text-decoration: none; }
+  .contact-block a:hover { text-decoration: underline; }
+  .footer-note {
+    margin-top: 3rem;
+    padding-top: 1.5rem;
+    border-top: 1px solid var(--border-soft);
+    font-size: 0.78rem;
+    color: var(--text-muted);
+    text-align: center;
+    letter-spacing: 0.03em;
+  }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <div class="logo-mark">Λ</div>
+  <div class="header-text">
+    <h1>Logos AI</h1>
+    <p>Homeopathic Consultation Platform</p>
+  </div>
+</div>
+
+<div class="container">
+  <div class="doc-header">
+    <h2>Privacy Policy</h2>
+    <p class="effective">Effective Date: June 2, 2026 &nbsp;·&nbsp; Version 1.0</p>
+  </div>
+
+  <div class="intro-note">
+    Your privacy matters deeply to us. Logos AI handles health-related conversations, and we treat that information with the utmost care and respect. This policy explains clearly what we collect, why, and how you can control it.
+  </div>
+
+  <div class="section">
+    <h3>1. Who We Are</h3>
+    <p>Logos AI is operated by Satya11 LLC, a company based in Nevada County, California. For privacy matters, you can reach us at <a href="mailto:alexblake.pires@gmail.com" style="color: var(--accent-light);">alexblake.pires@gmail.com</a>.</p>
+  </div>
+
+  <div class="section">
+    <h3>2. What Information We Collect</h3>
+    <table class="data-table">
+      <thead>
+        <tr>
+          <th>Category</th>
+          <th>What We Collect</th>
+          <th>Why</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><strong style="color: var(--text-primary);">Account Info</strong></td>
+          <td>Email address, full name, role</td>
+          <td>Authentication and personalization</td>
+        </tr>
+        <tr>
+          <td><strong style="color: var(--text-primary);">Consultation Data</strong></td>
+          <td>Messages, questions, and responses in your sessions</td>
+          <td>Delivering the service and saving your history</td>
+        </tr>
+        <tr>
+          <td><strong style="color: var(--text-primary);">Usage Data</strong></td>
+          <td>Device type, browser language, interaction patterns</td>
+          <td>Improving user experience and detecting issues</td>
+        </tr>
+        <tr>
+          <td><strong style="color: var(--text-primary);">Consent Records</strong></td>
+          <td>Disclaimer acknowledgment timestamp</td>
+          <td>Legal compliance and user safety</td>
+        </tr>
+        <tr>
+          <td><strong style="color: var(--text-primary);">Payment Info</strong></td>
+          <td>Billing details (processed by Stripe — not stored by us)</td>
+          <td>Subscription management</td>
+        </tr>
+      </tbody>
+    </table>
+    <p>We do not collect more than we need. We do not sell your data.</p>
+  </div>
+
+  <div class="section">
+    <h3>3. How We Use Your Information</h3>
+    <ul>
+      <li>To deliver and improve the Logos AI consultation service</li>
+      <li>To save your conversation history and enable continuity across sessions</li>
+      <li>To authenticate your identity and manage your account</li>
+      <li>To personalize your experience based on your role (client, practitioner, etc.)</li>
+      <li>To communicate service updates or respond to your inquiries</li>
+      <li>To comply with legal obligations</li>
+    </ul>
+  </div>
+
+  <div class="section">
+    <h3>4. AI Processing and Anthropic</h3>
+    <div class="highlight-box">
+      <p>Logos AI uses Anthropic's Claude API to power its AI responses. When you send a message, your input is processed by Anthropic's systems to generate a response. Anthropic's own privacy policy governs how they handle API data. We are actively pursuing a Zero Data Retention agreement with Anthropic to ensure your consultation content is not stored on their servers.</p>
+    </div>
+    <p>We do not share your personal identity with Anthropic — only the text content of your messages as needed to generate responses.</p>
+  </div>
+
+  <div class="section">
+    <h3>5. Data Storage and Security</h3>
+    <p>Your data is stored securely using Supabase (PostgreSQL), hosted on infrastructure with encryption at rest and in transit. Conversation data is associated with your user account and protected by row-level security controls.</p>
+    <p>We apply reasonable technical and organizational safeguards appropriate to the sensitivity of health-related information. However, no system is perfectly secure — please use a strong, unique password for your account.</p>
+  </div>
+
+  <div class="section">
+    <h3>6. Health Information</h3>
+    <p>Logos AI may collect health-related information that you voluntarily share in consultation sessions. This information is used solely to provide the service. We treat it with the highest level of care.</p>
+    <p>Logos AI is not a covered entity under HIPAA in the traditional medical sense; however, we are committed to health data privacy principles and handle your information accordingly. We do not share consultation content with third parties for advertising or commercial purposes.</p>
+  </div>
+
+  <div class="section">
+    <h3>7. Third-Party Services</h3>
+    <p>We use the following third-party services:</p>
+    <ul>
+      <li><strong style="color: var(--text-primary);">Supabase</strong> — Database and authentication (supabase.com)</li>
+      <li><strong style="color: var(--text-primary);">Anthropic</strong> — AI language model API (anthropic.com)</li>
+      <li><strong style="color: var(--text-primary);">Railway</strong> — Application hosting (railway.app)</li>
+      <li><strong style="color: var(--text-primary);">Stripe</strong> — Payment processing (stripe.com) — where applicable</li>
+    </ul>
+    <p>Each of these services has its own privacy policy governing their data handling. We encourage you to review them.</p>
+  </div>
+
+  <div class="section">
+    <h3>8. Your Rights</h3>
+    <div class="rights-grid">
+      <div class="right-card">
+        <h4>Access</h4>
+        <p>Request a copy of the personal data we hold about you.</p>
+      </div>
+      <div class="right-card">
+        <h4>Correction</h4>
+        <p>Ask us to correct inaccurate or incomplete data.</p>
+      </div>
+      <div class="right-card">
+        <h4>Deletion</h4>
+        <p>Request deletion of your account and associated data.</p>
+      </div>
+      <div class="right-card">
+        <h4>Portability</h4>
+        <p>Request your conversation data in a readable format.</p>
+      </div>
+      <div class="right-card">
+        <h4>Withdraw Consent</h4>
+        <p>Stop using the service and request data removal at any time.</p>
+      </div>
+      <div class="right-card">
+        <h4>California Rights</h4>
+        <p>CCPA rights apply — we do not sell your personal information.</p>
+      </div>
+    </div>
+    <p>To exercise any of these rights, email us at <a href="mailto:alexblake.pires@gmail.com" style="color: var(--accent-light);">alexblake.pires@gmail.com</a>. We will respond within 30 days.</p>
+  </div>
+
+  <div class="section">
+    <h3>9. Data Retention</h3>
+    <p>We retain your account and conversation data for as long as your account is active. If you delete your account, we will remove your personal data within 30 days, except where retention is required by law.</p>
+    <p>Guest session data is not saved to our database.</p>
+  </div>
+
+  <div class="section">
+    <h3>10. Children's Privacy</h3>
+    <p>Logos AI is not intended for use by persons under the age of 18. We do not knowingly collect personal information from minors. If you believe a minor has used the service, please contact us and we will delete the data promptly.</p>
+  </div>
+
+  <div class="section">
+    <h3>11. Changes to This Policy</h3>
+    <p>We may update this Privacy Policy from time to time. We will notify you of significant changes by updating the effective date above and, where appropriate, through the platform. Your continued use of Logos AI after changes are posted constitutes acceptance.</p>
+  </div>
+
+  <div class="contact-block">
+    <h4>Privacy Questions or Requests?</h4>
+    <p>We take your privacy seriously and will respond promptly.</p>
+    <p><strong>Satya11 LLC</strong> — Logos AI Privacy</p>
+    <p>📧 <a href="mailto:alexblake.pires@gmail.com">alexblake.pires@gmail.com</a></p>
+    <p>Nevada County, California · Response within 30 days</p>
+  </div>
+
+  <div class="footer-note">
+    © 2026 Satya11 LLC · Logos AI · All rights reserved
+  </div>
+</div>
+
+</body>
+</html>

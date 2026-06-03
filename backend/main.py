@@ -9,6 +9,7 @@ from contextlib import asynccontextmanager
 from fastapi import FastAPI, HTTPException, Request
 from fastapi.staticfiles import StaticFiles
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import FileResponse
 from pydantic import BaseModel
 from dotenv import load_dotenv
 from supabase import create_client, Client
@@ -180,10 +181,14 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# ── Models ─────────────────────────────────────────────────────────────────
-class Message(BaseModel):
-    role: str
-    content: str
+# ── Static Pages ───────────────────────────────────────────────────────────
+@app.get("/terms")
+async def terms():
+    return FileResponse("frontend/terms.html")
+
+@app.get("/privacy")
+async def privacy():
+    return FileResponse("frontend/privacy.html")
 
 class ChatRequest(BaseModel):
     messages: list[Message]
