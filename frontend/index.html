@@ -91,7 +91,7 @@
       border-top: none; display: flex; gap: 10px; flex-shrink: 0; align-items: flex-end; width: 100%; }
     .input-wrap { flex: 1; min-width: 0; overflow: visible; }
     textarea { width: 100%; padding: 11px 15px; background: #fff; border: 1px solid var(--border);
-      border-radius: 8px; font-family: 'Josefin Sans', sans-serif; font-size: 13px;
+      border-radius: 8px; font-family: 'Josefin Sans', sans-serif; font-size: 16px;
       color: var(--ink); outline: none; resize: none; min-height: 56px; max-height: 120px;
       line-height: 1.5; transition: border-color 0.2s; letter-spacing: 0.3px; overflow-y: hidden; box-sizing: border-box; }
     textarea:focus { border-color: var(--sage); }
@@ -177,7 +177,9 @@
     --muted: #9a8e7f;
   }
    body { background: var(--cream); }
-  .msg.assistant .bubble { background: #2a2a20; }
+  .msg.assistant .bubble { background: #323226; }
+  .bubble { color: var(--ink); }
+  .bubble h3 { color: #c9a84c; }
   textarea { background: #2a2a20; color: var(--ink); }
   .card { background: #2a2a20; }
   .upload-zone { background: #2a2a20; }
