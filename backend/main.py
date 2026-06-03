@@ -264,16 +264,20 @@ async def chat(req: ChatRequest):
         if req.user_token and req.conversation_id:
             try:
                 supabase.auth.get_user(req.user_token)
-                supabase.table("messages").insert({
-                    "conversation_id": req.conversation_id,
-                    "role": "user",
-                    "content": last_user
-                }).execute()
-                supabase.table("messages").insert({
-                    "conversation_id": req.conversation_id,
-                    "role": "assistant",
-                    "content": reply
-                }).execute()
+                # Only save the latest user message + assistant reply
+                # Frontend is responsible for not re-sending already saved messages
+                supabase.table("messages").insert([
+                    {
+                        "conversation_id": req.conversation_id,
+                        "role": "user",
+                        "content": last_user
+                    },
+                    {
+                        "conversation_id": req.conversation_id,
+                        "role": "assistant",
+                        "content": reply
+                    }
+                ]).execute()
             except Exception as e:
                 print(f"⚠️ Supabase save error: {e}")
         
@@ -429,6 +433,38 @@ async def accept_disclaimer(request: Request):
             raise HTTPException(status_code=401, detail="Unauthorized")
         supabase_admin.table("profiles").update({"disclaimer_accepted": True}).eq("id", user.user.id).execute()
         return {"accepted": True}
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=str(e))
+    
+# ── Conversation Management ────────────────────────────────────────────────
+@app.patch("/api/conversations/{conversation_id}")
+async def rename_conversation(conversation_id: str, request: Request):
+    try:
+        body = await request.json()
+        token = body.get("user_token", "")
+        title = body.get("title", "").strip()
+        if not title:
+            raise HTTPException(status_code=400, detail="Title cannot be empty")
+        user = supabase.auth.get_user(token)
+        if not user.user:
+            raise HTTPException(status_code=401, detail="Unauthorized")
+        supabase.table("conversations").update({"title": title}).eq("id", conversation_id).eq("user_id", user.user.id).execute()
+        return {"success": True}
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=str(e))
+
+@app.delete("/api/conversations/{conversation_id}")
+async def delete_conversation(conversation_id: str, request: Request):
+    try:
+        body = await request.json()
+        token = body.get("user_token", "")
+        user = supabase.auth.get_user(token)
+        if not user.user:
+            raise HTTPException(status_code=401, detail="Unauthorized")
+        # Delete messages first, then conversation
+        supabase.table("messages").delete().eq("conversation_id", conversation_id).execute()
+        supabase.table("conversations").delete().eq("id", conversation_id).eq("user_id", user.user.id).execute()
+        return {"success": True}
     except Exception as e:
         raise HTTPException(status_code=400, detail=str(e))
 
