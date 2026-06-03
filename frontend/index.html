@@ -216,10 +216,30 @@
 .conv-menu button:hover { background:rgba(44,74,46,0.1); }
 .conv-menu button.danger { color:var(--rust); }
 .conv-menu button.danger:hover { background:rgba(139,58,42,0.1); }
-.conv-rename-input, .conv-group-input { width:100%; box-sizing:border-box; padding:6px 8px; font-family:'Josefin Sans',sans-serif; font-size:12px; color:var(--ink); background:var(--cream); border:1px solid var(--sage); border-radius:6px; outline:none; }
-.conv-group-input { margin-top:6px; }
+.conv-rename-input { width:100%; box-sizing:border-box; padding:6px 8px; font-family:'Josefin Sans',sans-serif; font-size:12px; color:var(--ink); background:var(--cream); border:1px solid var(--sage); border-radius:6px; outline:none; }
 .conv-group { margin-bottom:6px; }
 .conv-group-label { font-size:10px; letter-spacing:1.5px; text-transform:uppercase; color:var(--forest); font-weight:600; padding:8px 12px 4px; }
+.folder-overlay { position:fixed; inset:0; background:rgba(26,18,8,0.45); z-index:210; display:flex; align-items:center; justify-content:center; padding:20px; }
+.folder-modal { width:100%; max-width:420px; max-height:85vh; display:flex; flex-direction:column; background:var(--parchment); border:1px solid var(--border); border-radius:14px; box-shadow:0 12px 40px rgba(26,18,8,0.35); overflow:hidden; }
+.folder-modal-header { display:flex; align-items:center; justify-content:space-between; padding:16px 18px 6px; }
+.folder-modal-title { font-family:'Cormorant Garamond',serif; font-size:22px; font-weight:300; color:var(--forest); }
+.folder-modal-close { background:none; border:none; cursor:pointer; font-size:18px; color:var(--muted); padding:4px; }
+.folder-modal-sub { padding:0 18px 12px; font-size:12px; color:var(--muted); font-style:italic; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+.folder-scroll { overflow-y:auto; padding:0 18px; flex:1; }
+.folder-section { margin-bottom:16px; }
+.folder-section-label { font-size:10px; letter-spacing:1.5px; text-transform:uppercase; color:var(--forest); font-weight:600; margin-bottom:8px; }
+.folder-chips { display:flex; flex-wrap:wrap; gap:8px; }
+.folder-chip { padding:8px 14px; font-family:'Josefin Sans',sans-serif; font-size:12px; letter-spacing:0.3px; color:var(--forest); background:var(--cream); border:1px solid var(--border); border-radius:20px; cursor:pointer; transition:background 0.15s, border-color 0.15s; }
+.folder-chip:hover { background:rgba(44,74,46,0.1); border-color:var(--sage); }
+.folder-chip.active { background:var(--forest); color:var(--cream); border-color:var(--forest); }
+.folder-create { display:flex; gap:8px; padding:14px 18px; border-top:1px solid var(--border); }
+.folder-create-input { flex:1; min-width:0; padding:9px 12px; font-family:'Josefin Sans',sans-serif; font-size:12px; color:var(--ink); background:var(--cream); border:1px solid var(--border); border-radius:8px; outline:none; }
+.folder-create-input:focus { border-color:var(--sage); }
+.folder-create-btn { padding:9px 18px; background:var(--forest); color:var(--cream); border:none; border-radius:8px; cursor:pointer; font-family:'Josefin Sans',sans-serif; font-size:11px; letter-spacing:1.5px; text-transform:uppercase; transition:background 0.2s; }
+.folder-create-btn:hover:not(:disabled) { background:var(--moss); }
+.folder-create-btn:disabled { opacity:0.5; cursor:default; }
+.folder-remove { margin:0 18px 16px; padding:9px; background:none; border:1px solid var(--border); border-radius:8px; color:var(--rust); font-family:'Josefin Sans',sans-serif; font-size:11px; letter-spacing:0.5px; cursor:pointer; }
+.folder-remove:hover { background:rgba(139,58,42,0.08); }
 .sidebar-btn { background:none; border:none; cursor:pointer; color:rgba(184,146,42,0.8); font-size:18px; padding:4px 8px; }
 
 /* ── DISCLAIMER ── */
@@ -600,12 +620,25 @@ const deleteConv = async (c) => {
   } catch(e) { console.error(e); }
 };
 
-const startGroup = (c) => { setMenuOpenId(''); setRenamingId(''); setGroupValue(metaFor(c.id).group || ''); setGroupingId(c.id); };
-const submitGroup = (c) => {
-  const group = groupValue.trim();
-  setGroupingId('');
-  const next = { ...convMeta, [c.id]: { ...metaFor(c.id) } };
-  if (group) next[c.id].group = group; else delete next[c.id].group;
+// Normalize folder names to Title Case so "ACUTE" and "acute" collapse to one folder.
+const titleCase = (s) => (s || '').trim().split(/\s+/).filter(Boolean)
+  .map(w => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase()).join(' ');
+// Distinct folders the user already has (case-insensitive), as Title Case display names.
+const existingGroups = () => {
+  const seen = new Map();
+  Object.values(convMeta).forEach(m => {
+    if (m && m.group) { const t = titleCase(m.group); seen.set(t.toLowerCase(), t); }
+  });
+  return Array.from(seen.values()).sort();
+};
+const startGroup = (c) => { setMenuOpenId(''); setRenamingId(''); setGroupValue(''); setGroupingId(c.id); };
+const assignFolder = (name) => {
+  const id = groupingId;
+  setGroupingId(''); setGroupValue('');
+  if (!id) return;
+  const group = titleCase(name);
+  const next = { ...convMeta, [id]: { ...metaFor(id) } };
+  if (group) next[id].group = group; else delete next[id].group;
   persistMeta(next);
 };
 
@@ -881,25 +914,18 @@ const loginScreen = (
                 <div className="conv-menu" onClick={e=>e.stopPropagation()}>
                   <button onClick={()=>startRename(c)}>✎ Rename</button>
                   <button className="danger" onClick={()=>deleteConv(c)}>🗑 Delete</button>
-                  <button onClick={()=>startGroup(c)}>🗂 Add to Group</button>
+                  <button onClick={()=>startGroup(c)}>🗂 Add to Folder</button>
                   <button onClick={()=>togglePin(c)}>📌 {m.pinned ? 'Unpin' : 'Pin'}</button>
                 </div>
               )}
             </div>
-            {groupingId === c.id && (
-              <input className="conv-group-input" autoFocus placeholder="Group name…" value={groupValue}
-                onClick={e=>e.stopPropagation()}
-                onChange={e=>setGroupValue(e.target.value)}
-                onBlur={()=>submitGroup(c)}
-                onKeyDown={e=>{ if(e.key==='Enter') submitGroup(c); else if(e.key==='Escape') setGroupingId(''); }} />
-            )}
           </div>
         );
       };
       const pinned = conversations.filter(c => metaFor(c.id).pinned);
       const rest = conversations.filter(c => !metaFor(c.id).pinned);
       const groups = {}; const ungrouped = [];
-      rest.forEach(c => { const g = metaFor(c.id).group; if (g) (groups[g] = groups[g] || []).push(c); else ungrouped.push(c); });
+      rest.forEach(c => { const g = metaFor(c.id).group; if (g) { const k = titleCase(g); (groups[k] = groups[k] || []).push(c); } else ungrouped.push(c); });
       return (
         <>
           {pinned.map(renderConv)}
@@ -915,6 +941,57 @@ const loginScreen = (
     })()}
   </div>
 </div>
+{groupingId && (() => {
+  const conv = conversations.find(c => c.id === groupingId);
+  const current = conv ? titleCase(metaFor(conv.id).group || '') : '';
+  const existing = existingGroups();
+  const everyone = ['General Wellness','Family Members','Acute Symptoms','Follow-ups'];
+  const practitioners = ['Acute Cases','Chronic Cases','Constitutional Work','Research'];
+  const closeFolder = () => { setGroupingId(''); setGroupValue(''); };
+  const renderChips = (names) => (
+    <div className="folder-chips">
+      {names.map(g => (
+        <button key={g} className={`folder-chip ${current===titleCase(g)?'active':''}`} onClick={()=>assignFolder(g)}>{g}</button>
+      ))}
+    </div>
+  );
+  return (
+    <div className="folder-overlay" onClick={closeFolder}>
+      <div className="folder-modal" onClick={e=>e.stopPropagation()}>
+        <div className="folder-modal-header">
+          <div className="folder-modal-title">Add to Folder</div>
+          <button className="folder-modal-close" onClick={closeFolder}>✕</button>
+        </div>
+        {conv && <div className="folder-modal-sub">{conv.title || 'New Consultation'}</div>}
+        <div className="folder-scroll">
+          {existing.length > 0 && (
+            <div className="folder-section">
+              <div className="folder-section-label">Your Folders</div>
+              {renderChips(existing)}
+            </div>
+          )}
+          <div className="folder-section">
+            <div className="folder-section-label">For Everyone</div>
+            {renderChips(everyone)}
+          </div>
+          <div className="folder-section">
+            <div className="folder-section-label">For Practitioners</div>
+            {renderChips(practitioners)}
+          </div>
+        </div>
+        <div className="folder-create">
+          <input className="folder-create-input" autoFocus placeholder="Create your own…" value={groupValue}
+            onChange={e=>setGroupValue(e.target.value)}
+            onKeyDown={e=>{ if(e.key==='Enter' && groupValue.trim()) assignFolder(groupValue); else if(e.key==='Escape') closeFolder(); }} />
+          <button className="folder-create-btn" disabled={!groupValue.trim()} onClick={()=>assignFolder(groupValue)}>Add</button>
+        </div>
+        {current && (
+          <button className="folder-remove" onClick={()=>assignFolder('')}>Remove from “{current}”</button>
+        )}
+      </div>
+    </div>
+  );
+})()}
 {showDisclaimer && (
         <div className="disclaimer-screen">
           <div className="disclaimer-box">
