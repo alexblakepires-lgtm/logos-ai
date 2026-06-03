@@ -25,7 +25,28 @@ supabase: Client = create_client(SUPABASE_URL, SUPABASE_ANON_KEY)
 
 # Admin client for backend operations
 SUPABASE_SERVICE_KEY = os.getenv("SUPABASE_SERVICE_ROLE_KEY", "")
-supabase_admin: Client = create_client(SUPABASE_URL, SUPABASE_SERVICE_KEY) if SUPABASE_SERVICE_KEY else supabase
+if SUPABASE_SERVICE_KEY:
+    supabase_admin: Client = create_client(SUPABASE_URL, SUPABASE_SERVICE_KEY)
+else:
+    # No service-role key configured: fall back to the anon client. NOTE the anon
+    # role has no grants on `profiles`, so any profile read/write must instead go
+    # through profile_db(token), which authenticates as the requesting user.
+    print("⚠️ SUPABASE_SERVICE_ROLE_KEY not set — profile operations run as the authenticated user via RLS.")
+    supabase_admin: Client = supabase
+
+
+def profile_db(token: str) -> Client:
+    """Client able to read/write the `profiles` table.
+
+    Prefers the service-role client (bypasses RLS) when configured. Otherwise
+    returns a client authenticated as the requesting user so the request runs
+    under the `authenticated` role rather than `anon` (which is denied access
+    to `profiles`, causing the disclaimer 400s)."""
+    if SUPABASE_SERVICE_KEY:
+        return supabase_admin
+    client = create_client(SUPABASE_URL, SUPABASE_ANON_KEY)
+    client.postgrest.auth(token)
+    return client
 
 def get_user_role(user_id: str) -> str:
     try:
@@ -425,9 +446,11 @@ async def get_disclaimer(token: str = ""):
         user = supabase.auth.get_user(token)
         if not user.user:
             raise HTTPException(status_code=401, detail="Unauthorized")
-        result = supabase_admin.table("profiles").select("disclaimer_accepted").eq("id", user.user.id).single().execute()
+        result = profile_db(token).table("profiles").select("disclaimer_accepted").eq("id", user.user.id).single().execute()
         accepted = result.data.get("disclaimer_accepted", False) if result.data else False
         return {"accepted": accepted}
+    except HTTPException:
+        raise
     except Exception as e:
         raise HTTPException(status_code=400, detail=str(e))
 
@@ -439,8 +462,10 @@ async def accept_disclaimer(request: Request):
         user = supabase.auth.get_user(token)
         if not user.user:
             raise HTTPException(status_code=401, detail="Unauthorized")
-        supabase_admin.table("profiles").update({"disclaimer_accepted": True}).eq("id", user.user.id).execute()
+        profile_db(token).table("profiles").update({"disclaimer_accepted": True}).eq("id", user.user.id).execute()
         return {"accepted": True}
+    except HTTPException:
+        raise
     except Exception as e:
         raise HTTPException(status_code=400, detail=str(e))
     
