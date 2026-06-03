@@ -680,6 +680,8 @@ const acceptDisclaimer = async () => {
         const convData = await convRes.json();
         convId = convData.conversation_id || '';
         setConversationId(convId);
+        // Refresh the sidebar once the background AI title has been generated.
+        setTimeout(() => fetchConversations(), 1500);
       }
       const reply = await callAPI(next.map(m => ({ role: m.role, content: m.content })), auth?.token || '', convId || '', auth?.role || 'client');
       setMsgs(p => [...p, { role: 'assistant', content: reply }]);
