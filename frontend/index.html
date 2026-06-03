@@ -218,7 +218,11 @@
 .conv-menu button.danger:hover { background:rgba(139,58,42,0.1); }
 .conv-rename-input { width:100%; box-sizing:border-box; padding:6px 8px; font-family:'Josefin Sans',sans-serif; font-size:12px; color:var(--ink); background:var(--cream); border:1px solid var(--sage); border-radius:6px; outline:none; }
 .conv-group { margin-bottom:6px; }
-.conv-group-label { font-size:10px; letter-spacing:1.5px; text-transform:uppercase; color:var(--forest); font-weight:600; padding:8px 12px 4px; }
+.conv-group-label { display:flex; align-items:center; justify-content:space-between; gap:6px; font-size:10px; letter-spacing:1.5px; text-transform:uppercase; color:var(--forest); font-weight:600; padding:8px 12px 4px; }
+.conv-group-name { overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.folder-del-btn { background:none; border:none; cursor:pointer; color:var(--muted); font-size:16px; line-height:1; padding:0 2px; flex-shrink:0; opacity:0; transition:opacity 0.15s, color 0.15s; }
+.conv-group:hover .folder-del-btn { opacity:1; }
+.folder-del-btn:hover { color:var(--rust); }
 .folder-overlay { position:fixed; inset:0; background:rgba(26,18,8,0.45); z-index:210; display:flex; align-items:center; justify-content:center; padding:20px; }
 .folder-modal { width:100%; max-width:420px; max-height:85vh; display:flex; flex-direction:column; background:var(--parchment); border:1px solid var(--border); border-radius:14px; box-shadow:0 12px 40px rgba(26,18,8,0.35); overflow:hidden; }
 .folder-modal-header { display:flex; align-items:center; justify-content:space-between; padding:16px 18px 6px; }
@@ -653,6 +657,21 @@ const togglePin = (c) => {
   persistMeta({ ...convMeta, [c.id]: { ...cur, pinned: !cur.pinned } });
 };
 
+const deleteFolder = (folderName) => {
+  if (!window.confirm(`Delete the "${folderName}" folder? Conversations in it will move back to ungrouped.`)) return;
+  const target = titleCase(folderName).toLowerCase();
+  const next = {};
+  Object.entries(convMeta).forEach(([id, m]) => {
+    if (m && m.group && titleCase(m.group).toLowerCase() === target) {
+      const { group, ...rest } = m;
+      next[id] = rest;
+    } else {
+      next[id] = m;
+    }
+  });
+  persistMeta(next);
+};
+
 const acceptDisclaimer = async () => {
   try {
     await fetch('/api/profile/disclaimer', {
@@ -945,7 +964,11 @@ const loginScreen = (
           {pinned.map(renderConv)}
           {Object.keys(groups).sort().map(g => (
             <div key={'grp-'+g} className="conv-group">
-              <div className="conv-group-label">🗂 {g}</div>
+              <div className="conv-group-label">
+                <span className="conv-group-name">🗂 {g}</span>
+                <button className="folder-del-btn" title={`Delete ${g} folder`}
+                  onClick={e=>{ e.stopPropagation(); deleteFolder(g); }}>×</button>
+              </div>
               {groups[g].map(renderConv)}
             </div>
           ))}
