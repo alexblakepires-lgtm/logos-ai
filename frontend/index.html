@@ -445,6 +445,13 @@ const [msgs, setMsgs] = useState([{
   role: 'assistant',
   content: getGreeting(auth)
 }]);
+
+useEffect(() => {
+  setMsgs([{
+    role: 'assistant',
+    content: getGreeting(auth)
+  }]);
+}, [auth]);
   const [input, setInput] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
