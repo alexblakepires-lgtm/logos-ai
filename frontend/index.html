@@ -437,7 +437,8 @@ function App() {
   const getGreeting = (auth) => {
   if (!auth || !auth.role) return 'Welcome. I am Logos, your Homeopathic Assistant.\n\nDescribe your symptoms for **remedy recommendations**, explore specific remedies.\n\nHow may I help you today?';
   if (auth.role === 'admin') return 'Welcome back, Alexandre. 🌿\n\nYou have full admin access. How can I assist you today?';
-  if (auth.role === 'practitioner') return 'Welcome back, Lua. 🌿\n\nYou are logged in as a verified practitioner. I am ready for clinical consultation — feel free to speak with full technical depth.\n\nHow may I assist you today?';
+  if (auth.role === 'co_founder') return 'Welcome back, Lua. 🌿\n\nLogos is ready — heart and soul. How may I assist you today?';
+  if (auth.role === 'practitioner') return 'Welcome. I am Logos, your homeopathic companion. 🌿\n\nHow may I assist your practice today?';
   return 'Welcome. I am Logos, your Homeopathic Assistant.\n\nDescribe your symptoms for **remedy recommendations**, explore specific remedies.\n\nHow may I help you today?';
 };
 

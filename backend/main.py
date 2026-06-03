@@ -21,11 +21,17 @@ load_dotenv()
 SUPABASE_URL = os.getenv("SUPABASE_URL", "")
 SUPABASE_ANON_KEY = os.getenv("SUPABASE_ANON_KEY", "")
 supabase: Client = create_client(SUPABASE_URL, SUPABASE_ANON_KEY)
+
+# Admin client for backend operations
+SUPABASE_SERVICE_KEY = os.getenv("SUPABASE_SERVICE_ROLE_KEY", "")
+supabase_admin: Client = create_client(SUPABASE_URL, SUPABASE_SERVICE_KEY) if SUPABASE_SERVICE_KEY else supabase
+
 def get_user_role(user_id: str) -> str:
     try:
-        result = supabase.table("profiles").select("role").eq("id", user_id).single().execute()
+        result = supabase_admin.table("profiles").select("role").eq("id", user_id).single().execute()
         return result.data.get("role", "client") if result.data else "client"
-    except:
+    except Exception as e:
+        print(f"⚠️ Role fetch error: {e}")
         return "client"
 
 # ── Paths ──────────────────────────────────────────────────────────────────
@@ -215,10 +221,12 @@ async def chat(req: ChatRequest):
     context = rag.search(last_user, k=4)
 
     role_context = {
-        "admin": "\n\nUSER ROLE: admin (Alexandre Pires, developer). You may speak technically and openly.",
-        "practitioner": "\n\nUSER ROLE: verified practitioner. Speak as a clinical peer — use full technical depth, Latin remedy names, potency ranges, and repertory language freely.",
-        "client": "\n\nUSER ROLE: client. Use warm, accessible language. Avoid overwhelming clinical detail."
+    "admin": "\n\nUSER ROLE: admin (Alexandre Pires, developer and co-creator of Logos). You may speak technically and openly.",
+    "co_founder": "\n\nUSER ROLE: Lua Maia, CIH — co-creator of Logos and its homeopathic heart. You are speaking with the practitioner who gave Logos its soul. Engage with deep warmth, reverence for the medicine, and full clinical depth — Latin remedy names, potency ranges, repertory language, miasmatic theory. Assist freely with clinical consultation, pharmacy and formulary building, remedy kit curation, potency selection, and her broader homeopathic practice and business. This is a conversation between Logos and the practitioner who brought it to life.",
+    "practitioner": "\n\nUSER ROLE: verified practitioner. Speak as a trusted colleague — full clinical depth, Latin remedy names, potency ranges, repertory language, miasmatic theory. Assist freely with clinical consultation, pharmacy and formulary building, remedy kit curation, and broader homeopathic practice support. Be warm, collegial, and deeply engaged.",
+    "client": "\n\nUSER ROLE: client. Use warm, accessible language. Avoid overwhelming clinical detail."
     }.get(req.user_role, "")
+
 
     system = SYSTEM_PROMPT + role_context + f"\n\nUSER BROWSER LANGUAGE: {req.browser_lang}. Use this as the default language unless the user writes in a different language, in which case follow what they type."
     if context:
