@@ -184,11 +184,12 @@ app.add_middleware(
 # ── Static Pages ───────────────────────────────────────────────────────────
 @app.get("/terms")
 async def terms():
-    return FileResponse("frontend/terms.html")
+    return FileResponse("../frontend/terms.html")
 
 @app.get("/privacy")
 async def privacy():
-    return FileResponse("frontend/privacy.html")
+    return FileResponse("../frontend/privacy.html")
+
 
 
 # ── Models ─────────────────────────────────────────────────────────────────
