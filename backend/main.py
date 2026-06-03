@@ -296,6 +296,7 @@ async def chat(req: ChatRequest):
             detail="Ollama is not running. Start it with: ollama serve"
         )
     except Exception as e:
+        print(f"❌ Chat error: {e}")
         raise HTTPException(status_code=500, detail=str(e))
 
 
