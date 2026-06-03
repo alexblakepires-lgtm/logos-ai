@@ -379,6 +379,17 @@ async def create_conversation(request: Request):
         print(f"⚠️ Conversation error: {e}")
         raise HTTPException(status_code=400, detail=str(e))
 
+@app.get("/api/conversations")
+async def get_conversations(token: str = ""):
+    try:
+        user = supabase.auth.get_user(token)
+        if not user.user:
+            raise HTTPException(status_code=401, detail="Unauthorized")
+        result = supabase.table("conversations").select("*").eq("user_id", user.user.id).order("created_at", desc=True).execute()
+        return {"conversations": result.data}
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=str(e))
+
 @app.get("/api/conversations/{conversation_id}/messages")
 async def get_messages(conversation_id: str, token: str = ""):
 
