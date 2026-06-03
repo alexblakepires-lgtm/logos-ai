@@ -203,7 +203,6 @@
 .conv-item:hover { background:rgba(44,74,46,0.08); }
 .conv-item.active { background:rgba(44,74,46,0.12); }
 .conv-title { font-size:12px; color:var(--ink); letter-spacing:0.3px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
-.conv-date { font-size:10px; color:var(--muted); margin-top:2px; letter-spacing:0.5px; }
 .sidebar-btn { background:none; border:none; cursor:pointer; color:rgba(184,146,42,0.8); font-size:18px; padding:4px 8px; }
 
 /* ── DISCLAIMER ── */
@@ -770,9 +769,8 @@ const loginScreen = (
     )}
     {conversations.map(c => (
       <div key={c.id} className={`conv-item ${activeConvId===c.id?'active':''}`} onClick={()=>loadConversation(c)}>
-        <div className="conv-title">{c.title || 'Consultation'}</div>
-        <div className="conv-date">{new Date(c.created_at).toLocaleDateString()}</div>
-      </div>
+      <div className="conv-title">{c.title || 'New Consultation'}</div>
+    </div>
     ))}
   </div>
 </div>
