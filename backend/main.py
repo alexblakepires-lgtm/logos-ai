@@ -6,7 +6,7 @@ from pathlib import Path
 from datetime import datetime
 from contextlib import asynccontextmanager
 
-from fastapi import FastAPI, HTTPException, Request
+from fastapi import FastAPI, HTTPException, Request, BackgroundTasks
 from fastapi.staticfiles import StaticFiles
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse
@@ -398,21 +398,65 @@ async def signout():
     except Exception as e:
         raise HTTPException(status_code=400, detail=str(e))
 
+def generate_title(message: str) -> str:
+    """Summarize a conversation's first message into a short 4-6 word title.
+
+    Falls back to the raw message text if Anthropic is disabled or the call fails
+    (e.g. "Good morning I am curious..." -> "Morning greeting and curiosity")."""
+    fallback = (message or "").strip()[:50] or "New Consultation"
+    if not USE_ANTHROPIC or not ANTHROPIC_KEY or not (message or "").strip():
+        return fallback
+    try:
+        import anthropic
+        ac = anthropic.Anthropic(api_key=ANTHROPIC_KEY)
+        response = ac.messages.create(
+            model="claude-sonnet-4-5",
+            max_tokens=20,
+            system=(
+                "You generate concise titles for chat conversations. Given the user's "
+                "first message, reply with ONLY a 4-6 word title summarizing it. No "
+                "quotes, no trailing punctuation, no preamble."
+            ),
+            messages=[{"role": "user", "content": message.strip()[:500]}],
+        )
+        title = response.content[0].text.strip().strip('"').strip()
+        return title or fallback
+    except Exception as e:
+        print(f"⚠️ Title generation error: {e}")
+        return fallback
+
+
+def retitle_conversation(conversation_id: str, raw_title: str):
+    """Background task: replace a new conversation's raw first-message title with
+    an AI-generated summary. Leaves the raw title in place if generation fails."""
+    title = generate_title(raw_title)
+    if not title or title == raw_title:
+        return
+    try:
+        supabase.table("conversations").update({"title": title}).eq("id", conversation_id).execute()
+    except Exception as e:
+        print(f"⚠️ Retitle update error: {e}")
+
+
 @app.post("/api/conversations")
-async def create_conversation(request: Request):
+async def create_conversation(request: Request, background_tasks: BackgroundTasks):
     try:
         body = await request.json()
         token = body.get("user_token", "")
-        title = body.get("title", "New Consultation")
+        raw_title = body.get("title", "New Consultation")
         user = supabase.auth.get_user(token)
         user_id = user.user.id
-        print(f"Creating conversation for user: {user_id}, title: {title}")
+        print(f"Creating conversation for user: {user_id}, title: {raw_title}")
         result = supabase.table("conversations").insert({
             "user_id": user_id,
-            "title": title
+            "title": raw_title
         }).execute()
         print(f"Result: {result.data}")
-        return {"conversation_id": result.data[0]["id"]}
+        conversation_id = result.data[0]["id"]
+        # Summarize the title after responding so conversation creation stays fast.
+        if raw_title and raw_title != "New Consultation":
+            background_tasks.add_task(retitle_conversation, conversation_id, raw_title)
+        return {"conversation_id": conversation_id}
     except Exception as e:
         print(f"⚠️ Conversation error: {e}")
         raise HTTPException(status_code=400, detail=str(e))
