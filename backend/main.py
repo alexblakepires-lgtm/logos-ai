@@ -21,6 +21,12 @@ load_dotenv()
 SUPABASE_URL = os.getenv("SUPABASE_URL", "")
 SUPABASE_ANON_KEY = os.getenv("SUPABASE_ANON_KEY", "")
 supabase: Client = create_client(SUPABASE_URL, SUPABASE_ANON_KEY)
+def get_user_role(user_id: str) -> str:
+    try:
+        result = supabase.table("profiles").select("role").eq("id", user_id).single().execute()
+        return result.data.get("role", "client") if result.data else "client"
+    except:
+        return "client"
 
 # ── Paths ──────────────────────────────────────────────────────────────────
 BASE_DIR      = Path(__file__).parent.parent
@@ -178,6 +184,7 @@ class ChatRequest(BaseModel):
     browser_lang: str = "en"
     user_token: str = ""
     conversation_id: str = ""
+    user_role: str = "client"
 
 class CoughRequest(BaseModel):
     duration: float
@@ -206,7 +213,14 @@ async def chat(req: ChatRequest):
         (m.content for m in reversed(req.messages) if m.role == "user"), ""
     )
     context = rag.search(last_user, k=4)
-    system = SYSTEM_PROMPT + f"\n\nUSER BROWSER LANGUAGE: {req.browser_lang}. Use this as the default language unless the user writes in a different language, in which case follow what they type."
+
+    role_context = {
+        "admin": "\n\nUSER ROLE: admin (Alexandre Pires, developer). You may speak technically and openly.",
+        "practitioner": "\n\nUSER ROLE: verified practitioner. Speak as a clinical peer — use full technical depth, Latin remedy names, potency ranges, and repertory language freely.",
+        "client": "\n\nUSER ROLE: client. Use warm, accessible language. Avoid overwhelming clinical detail."
+    }.get(req.user_role, "")
+
+    system = SYSTEM_PROMPT + role_context + f"\n\nUSER BROWSER LANGUAGE: {req.browser_lang}. Use this as the default language unless the user writes in a different language, in which case follow what they type."
     if context:
         system += f"\n\n═══ RELEVANT KNOWLEDGE ═══\n\n{context}\n\n═══════════════════════════════════════════════════"
 
@@ -321,7 +335,12 @@ async def signup(req: SignUpRequest):
 async def signin(req: SignInRequest):
     try:
         res = supabase.auth.sign_in_with_password({"email": req.email, "password": req.password})
-        return {"access_token": res.session.access_token, "user": res.user.email}
+        role = get_user_role(res.user.id)
+        return {
+            "access_token": res.session.access_token,
+            "user": res.user.email,
+            "role": role
+        }
     except Exception as e:
         raise HTTPException(status_code=400, detail=str(e))
 

@@ -376,12 +376,12 @@ function analyzeAudio(audioBuffer) {
 }
 
 // ── API Call ───────────────────────────────────────────────────────────────
-async function callAPI(messages, userToken = '', conversationId = '') {
+async function callAPI(messages, userToken = '', conversationId = '', userRole = 'client') {
   const browserLang = navigator.language || navigator.userLanguage || 'en';
   const res = await fetch('/api/chat', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ messages, browser_lang: browserLang, user_token: userToken, conversation_id: conversationId })
+    body: JSON.stringify({ messages, browser_lang: browserLang, user_token: userToken, conversation_id: conversationId, user_role: userRole })
   });
   const data = await res.json();
   if (data.error) throw new Error(typeof data.error === 'string' ? data.error : data.error.message);
@@ -418,7 +418,7 @@ function App() {
       const data = await res.json();
       if (data.detail) throw new Error(data.detail);
       if (authMode === 'signin') {
-        const authData = { token: data.access_token, email: data.user };
+        const authData = { token: data.access_token, email: data.user, role: data.role || 'client' };
         localStorage.setItem('logos_auth', JSON.stringify(authData));
         setAuth(authData);
       } else {
@@ -434,9 +434,16 @@ function App() {
 
   
   
-  const [msgs, setMsgs] = useState([{
-    role: 'assistant',
-content: 'Welcome. I am Logos, your Homeopathic Assistant.\n\nDescribe your symptoms for **remedy recommendations**, explore specific remedies.\n\nHow may I help you today?'
+  const getGreeting = (auth) => {
+  if (!auth || !auth.role) return 'Welcome. I am Logos, your Homeopathic Assistant.\n\nDescribe your symptoms for **remedy recommendations**, explore specific remedies.\n\nHow may I help you today?';
+  if (auth.role === 'admin') return 'Welcome back, Alexandre. 🌿\n\nYou have full admin access. How can I assist you today?';
+  if (auth.role === 'practitioner') return 'Welcome back, Lua. 🌿\n\nYou are logged in as a verified practitioner. I am ready for clinical consultation — feel free to speak with full technical depth.\n\nHow may I assist you today?';
+  return 'Welcome. I am Logos, your Homeopathic Assistant.\n\nDescribe your symptoms for **remedy recommendations**, explore specific remedies.\n\nHow may I help you today?';
+};
+
+const [msgs, setMsgs] = useState([{
+  role: 'assistant',
+  content: getGreeting(auth)
 }]);
   const [input, setInput] = useState('');
   const [loading, setLoading] = useState(false);
@@ -484,7 +491,7 @@ content: 'Welcome. I am Logos, your Homeopathic Assistant.\n\nDescribe your symp
         convId = convData.conversation_id || '';
         setConversationId(convId);
       }
-      const reply = await callAPI(next.map(m => ({ role: m.role, content: m.content })), auth?.token || '', convId || '');
+      const reply = await callAPI(next.map(m => ({ role: m.role, content: m.content })), auth?.token || '', convId || '', auth?.role || 'client');
       setMsgs(p => [...p, { role: 'assistant', content: reply }]);
     } catch (e) {
       setError(e.message);
