@@ -190,6 +190,11 @@ async def terms():
 async def privacy():
     return FileResponse("frontend/privacy.html")
 
+# ── Models ─────────────────────────────────────────────────────────────────
+class Message(BaseModel):
+    role: str
+    content: str
+
 class ChatRequest(BaseModel):
     messages: list[Message]
     browser_lang: str = "en"
