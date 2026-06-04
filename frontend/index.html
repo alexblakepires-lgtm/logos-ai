@@ -259,6 +259,21 @@
 .disclaimer-emergency p { font-size:12px; color:var(--rust); margin:0; font-weight:600; letter-spacing:0.3px; }
 .disclaimer-agree-btn { width:100%; padding:16px; background:var(--forest); color:var(--cream); border:none; border-radius:12px; cursor:pointer; font-family:'Josefin Sans',sans-serif; font-size:12px; letter-spacing:3px; text-transform:uppercase; transition:background 0.2s; margin-top:8px; }
 .disclaimer-agree-btn:hover { background:var(--moss); }
+.paywall-screen { position:fixed; inset:0; background:var(--cream); z-index:200; display:flex; align-items:center; justify-content:center; overflow-y:auto; padding:24px; -webkit-overflow-scrolling:touch; }
+.paywall-box { max-width:420px; width:100%; text-align:center; }
+.paywall-icon { font-size:44px; line-height:1; }
+.paywall-brand { font-family:'Cormorant Garamond',serif; font-size:34px; font-weight:300; color:var(--forest); letter-spacing:2px; margin-top:6px; }
+.paywall-title { font-family:'Cormorant Garamond',serif; font-size:26px; font-weight:300; color:var(--ink); margin-top:18px; }
+.paywall-text { font-size:13px; color:var(--muted); line-height:1.7; margin-top:10px; }
+.paywall-pricing { display:flex; align-items:center; justify-content:center; gap:18px; margin:26px 0; }
+.paywall-plan { display:flex; flex-direction:column; align-items:center; padding:16px 20px; background:var(--parchment); border:1px solid var(--border); border-radius:12px; min-width:120px; }
+.paywall-price { font-family:'Cormorant Garamond',serif; font-size:30px; font-weight:400; color:var(--forest); }
+.paywall-period { font-size:10px; letter-spacing:1.5px; text-transform:uppercase; color:var(--muted); margin-top:4px; }
+.paywall-or { font-size:11px; letter-spacing:1px; text-transform:uppercase; color:var(--muted); }
+.paywall-subscribe { display:block; width:100%; box-sizing:border-box; padding:16px; background:var(--forest); color:var(--cream); border:none; border-radius:12px; cursor:pointer; font-family:'Josefin Sans',sans-serif; font-size:12px; letter-spacing:3px; text-transform:uppercase; text-decoration:none; transition:background 0.2s; }
+.paywall-subscribe:hover { background:var(--moss); }
+.paywall-guest { display:block; width:100%; margin-top:14px; padding:10px; background:none; border:none; cursor:pointer; font-family:'Josefin Sans',sans-serif; font-size:12px; letter-spacing:1px; color:var(--muted); transition:color 0.2s; }
+.paywall-guest:hover { color:var(--forest); }
 
   </style>
 </head>
@@ -458,7 +473,11 @@ async function callAPI(messages, userToken = '', conversationId = '', userRole =
     body: JSON.stringify({ messages, browser_lang: browserLang, user_token: userToken, conversation_id: conversationId, user_role: userRole })
   });
   const data = await res.json();
-  if (!res.ok) throw new Error(data.detail || (typeof data.error === 'string' ? data.error : data.error?.message) || 'Request failed');
+  if (!res.ok) {
+    const err = new Error(data.detail || (typeof data.error === 'string' ? data.error : data.error?.message) || 'Request failed');
+    err.status = res.status;
+    throw err;
+  }
   if (data.error) throw new Error(typeof data.error === 'string' ? data.error : data.error.message);
   return data.content[0].text;
 }
@@ -494,6 +513,7 @@ function App() {
     try { return JSON.parse(localStorage.getItem('logos_conv_meta') || '{}'); } catch { return {}; }
   });
   const [trialConfig, setTrialConfig] = useState({ enforcement: false, guestLimit: 5, trialDays: 3 });
+  const [showPaywall, setShowPaywall] = useState(false);
   const [guestMsgs, setGuestMsgs] = useState(() => {
     try { return parseInt(localStorage.getItem('logos_guest_msgs') || '0', 10) || 0; } catch { return 0; }
   });
@@ -770,8 +790,13 @@ const acceptDisclaimer = async () => {
         try { localStorage.setItem('logos_guest_msgs', String(n)); } catch {}
       }
     } catch (e) {
-      setError(e.message);
-      setMsgs(p => [...p, { role: 'assistant', content: `⚠️ **Error:** ${e.message}\n\nMake sure your server is running and the API key is set in the .env file.` }]);
+      if (e.status === 402) {
+        setMsgs(p => p.slice(0, -1));
+        setShowPaywall(true);
+      } else {
+        setError(e.message);
+        setMsgs(p => [...p, { role: 'assistant', content: `⚠️ **Error:** ${e.message}\n\nMake sure your server is running and the API key is set in the .env file.` }]);
+      }
     } finally { setLoading(false); }
   }, [input, msgs, loading, auth, trialConfig, guestMsgs]);
 
@@ -936,6 +961,43 @@ const loginScreen = (
     </div>
   );
   if (!auth) return loginScreen;
+
+  const continueAsGuest = () => {
+    const g = { token: null, email: 'guest' };
+    localStorage.setItem('logos_auth', JSON.stringify(g));
+    localStorage.setItem('logos_guest_msgs', '0');
+    setGuestMsgs(0);
+    setAuth(g);
+    setShowPaywall(false);
+    setMsgs([{ role: 'assistant', content: getGreeting(g) }]);
+  };
+
+  const paywallScreen = (
+    <div className="paywall-screen">
+      <div className="paywall-box">
+        <div className="paywall-icon">🌿</div>
+        <div className="paywall-brand" translate="no">Logos</div>
+        <div className="paywall-title">Your free trial has ended</div>
+        <div className="paywall-text">Continue your homeopathic journey with full access to Logos.</div>
+        <div className="paywall-pricing">
+          <div className="paywall-plan">
+            <span className="paywall-price">$9.99</span>
+            <span className="paywall-period">per month</span>
+          </div>
+          <div className="paywall-or">or</div>
+          <div className="paywall-plan">
+            <span className="paywall-price">$99.99</span>
+            <span className="paywall-period">per year</span>
+          </div>
+        </div>
+        <a className="paywall-subscribe" href="#subscribe">Subscribe Now</a>
+        <button className="paywall-guest" onClick={continueAsGuest}>
+          Continue as Guest — {trialConfig.guestLimit} messages →
+        </button>
+      </div>
+    </div>
+  );
+  if (showPaywall) return paywallScreen;
 
   return (
     <div className="app">
