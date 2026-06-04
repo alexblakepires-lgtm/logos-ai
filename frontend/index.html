@@ -970,6 +970,21 @@ const loginScreen = (
     setMsgs([{ role: 'assistant', content: getGreeting(g) }]);
   };
 
+  const startCheckout = async (plan) => {
+    try {
+      const res = await fetch('/api/create-checkout-session', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ user_token: auth?.token, plan })
+      });
+      const data = await res.json();
+      if (!res.ok || !data.url) throw new Error(data.detail || 'Could not start checkout');
+      window.location.href = data.url;
+    } catch (e) {
+      setError(e.message);
+    }
+  };
+
   return (
     <div className="app">
       <div className={`sidebar-overlay ${sidebarOpen?'open':''}`} onClick={()=>setSidebarOpen(false)} />
@@ -1096,8 +1111,8 @@ const loginScreen = (
             <div className="paywall-brand" translate="no">Logos</div>
             <div className="paywall-title">Your free trial has ended</div>
             <div className="paywall-text">Subscribe to continue your homeopathic journey.</div>
-            <a className="paywall-subscribe" href="#subscribe-monthly">Subscribe $9.99/month</a>
-            <a className="paywall-subscribe alt" href="#subscribe-yearly">Subscribe $99.99/year</a>
+            <button className="paywall-subscribe" onClick={()=>startCheckout('monthly')}>Subscribe $9.99/month</button>
+            <button className="paywall-subscribe alt" onClick={()=>startCheckout('yearly')}>Subscribe $99.99/year</button>
             <button className="paywall-guest" onClick={continueAsGuest}>Continue as Guest</button>
           </div>
         </div>

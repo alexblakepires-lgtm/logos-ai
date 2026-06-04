@@ -13,3 +13,4 @@ langchain-text-splitters
 chromadb
 sentence-transformers
 supabase
+stripe

@@ -2,6 +2,7 @@ import os
 import json
 import asyncio
 import httpx
+import stripe
 from pathlib import Path
 from datetime import datetime, timedelta, timezone
 from contextlib import asynccontextmanager
@@ -24,6 +25,13 @@ load_dotenv()
 TRIAL_ENFORCEMENT = False
 TRIAL_DAYS = 3                # length of the free trial, in days
 GUEST_MESSAGE_LIMIT = 5       # messages a guest (no account) gets per session
+
+# ── Stripe ───────────────────────────────────────────────────────────────────
+STRIPE_SECRET_KEY = os.getenv("STRIPE_SECRET_KEY", "")
+STRIPE_WEBHOOK_SECRET = os.getenv("STRIPE_WEBHOOK_SECRET", "")
+stripe.api_key = STRIPE_SECRET_KEY
+PRICE_MONTHLY = 999          # $9.99 / month, in cents
+PRICE_YEARLY = 9999          # $99.99 / year, in cents
 
 # ── Supabase ───────────────────────────────────────────────────────────────
 SUPABASE_URL = os.getenv("SUPABASE_URL", "")
@@ -475,6 +483,86 @@ async def signout():
         return {"message": "Signed out"}
     except Exception as e:
         raise HTTPException(status_code=400, detail=str(e))
+
+# ── Stripe billing ───────────────────────────────────────────────────────────
+@app.post("/api/create-checkout-session")
+async def create_checkout_session(request: Request):
+    if not STRIPE_SECRET_KEY:
+        raise HTTPException(status_code=503, detail="Payments are not configured")
+    try:
+        body = await request.json()
+        token = body.get("user_token", "")
+        plan = body.get("plan", "monthly")
+        user = supabase.auth.get_user(token)
+        if not user or not user.user:
+            raise HTTPException(status_code=401, detail="Unauthorized")
+
+        amount, interval, label = (
+            (PRICE_YEARLY, "year", "Logos Yearly Subscription") if plan == "yearly"
+            else (PRICE_MONTHLY, "month", "Logos Monthly Subscription")
+        )
+        origin = request.headers.get("origin")
+        if not origin:
+            host = request.headers.get("host", "")
+            origin = f"{request.url.scheme}://{host}" if host else ""
+
+        session = stripe.checkout.Session.create(
+            mode="subscription",
+            client_reference_id=user.user.id,
+            customer_email=user.user.email,
+            line_items=[{
+                "price_data": {
+                    "currency": "usd",
+                    "product_data": {"name": label},
+                    "unit_amount": amount,
+                    "recurring": {"interval": interval},
+                },
+                "quantity": 1,
+            }],
+            subscription_data={"metadata": {"user_id": user.user.id}},
+            success_url=f"{origin}/?checkout=success",
+            cancel_url=f"{origin}/?checkout=cancel",
+        )
+        return {"url": session.url}
+    except HTTPException:
+        raise
+    except Exception as e:
+        print(f"⚠️ Checkout error: {e}")
+        raise HTTPException(status_code=400, detail=str(e))
+
+@app.post("/api/stripe-webhook")
+async def stripe_webhook(request: Request):
+    payload = await request.body()
+    sig = request.headers.get("stripe-signature", "")
+    try:
+        event = stripe.Webhook.construct_event(payload, sig, STRIPE_WEBHOOK_SECRET)
+    except Exception as e:
+        print(f"⚠️ Webhook signature error: {e}")
+        raise HTTPException(status_code=400, detail="Invalid signature")
+
+    etype = event["type"]
+    obj = event["data"]["object"]
+
+    if etype == "checkout.session.completed":
+        user_id = obj.get("client_reference_id")
+        if user_id:
+            try:
+                supabase_admin.table("profiles").update(
+                    {"subscribed": True, "trial_started_at": None}
+                ).eq("id", user_id).execute()
+            except Exception as e:
+                print(f"⚠️ Webhook subscribe update error: {e}")
+    elif etype == "customer.subscription.deleted":
+        user_id = (obj.get("metadata") or {}).get("user_id")
+        if user_id:
+            try:
+                supabase_admin.table("profiles").update(
+                    {"subscribed": False}
+                ).eq("id", user_id).execute()
+            except Exception as e:
+                print(f"⚠️ Webhook unsubscribe update error: {e}")
+
+    return {"status": "success"}
 
 def generate_title(message: str) -> str:
     """Summarize a conversation's first message into a short 4-6 word title.
