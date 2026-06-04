@@ -21,7 +21,7 @@ load_dotenv()
 # ── Trial / subscription config ──────────────────────────────────────────────
 # Master switch: when False, ALL trial checks are skipped (Logos is free for
 # everyone). Flip to True and redeploy to start enforcing the free trial.
-TRIAL_ENFORCEMENT = True
+TRIAL_ENFORCEMENT = False
 TRIAL_DAYS = 3                # length of the free trial, in days
 GUEST_MESSAGE_LIMIT = 5       # messages a guest (no account) gets per session
 
