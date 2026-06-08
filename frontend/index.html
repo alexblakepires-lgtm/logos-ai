@@ -599,7 +599,12 @@ const fetchConversations = useCallback(async () => {
   } catch(e) { console.error(e); }
 }, [auth]);
 
-useEffect(() => { fetchConversations(); }, [fetchConversations]);
+useEffect(() => {
+  if (!auth?.token) return;
+  const timer = setTimeout(() => { fetchConversations(); }, 300);
+  return () => clearTimeout(timer);
+}, [fetchConversations, auth?.token]);
+
 
 const loadConversation = async (conv) => {
   try {
