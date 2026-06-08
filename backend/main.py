@@ -237,13 +237,13 @@ def download_from_gdrive(file_id: str, dest_path: Path):
     print(f"✅ Downloaded {dest_path.name}")
 
     async def log_knowledge_gap(query: str, user_role: str):
-    try:
-        supabase.table("knowledge_gaps").insert({
-            "query": query,
-            "user_role": user_role
-        }).execute()
-    except Exception:
-        pass
+        try:
+            supabase.table("knowledge_gaps").insert({
+                "query": query,
+                "user_role": user_role
+            }).execute()
+        except Exception:
+            pass
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
