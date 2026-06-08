@@ -655,14 +655,17 @@ async def create_conversation(request: Request, background_tasks: BackgroundTask
 
 @app.get("/api/conversations")
 async def get_conversations(token: str = ""):
+    if not token:
+        return {"conversations": []}
     try:
         user = supabase.auth.get_user(token)
-        if not user.user:
-            raise HTTPException(status_code=401, detail="Unauthorized")
+        if not user or not user.user:
+            return {"conversations": []}
         result = supabase.table("conversations").select("*").eq("user_id", user.user.id).order("created_at", desc=True).execute()
-        return {"conversations": result.data}
+        return {"conversations": result.data or []}
     except Exception as e:
-        raise HTTPException(status_code=400, detail=str(e))
+        print(f"⚠️ get_conversations error: {e}")
+        return {"conversations": []}
 
 @app.get("/api/conversations/{conversation_id}/messages")
 async def get_messages(conversation_id: str, token: str = ""):
