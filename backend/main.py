@@ -116,6 +116,8 @@ BASE_DIR      = Path(__file__).parent.parent
 PDF_PATHS     = [
     BASE_DIR / "data" / "NATURES_MATERIA_MEDICA.txt",
     BASE_DIR / "data" / "METAREPERTORY.txt",
+    BASE_DIR / "data" / "KENT_MATERIA_MEDICA.txt",
+    BASE_DIR / "data" / "PHATAK_MATERIA_MEDICA.txt",
 ]
 DB_PATH       = str(BASE_DIR / "data" / "chroma_db")
 FRONT_DIR     = str(BASE_DIR / "frontend")
@@ -215,6 +217,8 @@ rag = MaterialMedicaRAG([str(p) for p in PDF_PATHS], DB_PATH)
 GDRIVE_FILES = {
     "NATURES_MATERIA_MEDICA.txt": "16uz6fZJbTLs0AG5WP26wqGvQJyGC_7F_",
     "METAREPERTORY.txt": "1u55UWY_Cn90dhIsy2yAWTNQA1t_zCLEe",
+    "KENT_MATERIA_MEDICA.txt": "1JA6wJLS7BSftM_Eq3-Fo9kit2f8YGepS",
+    "PHATAK_MATERIA_MEDICA.txt": "1Uqm4iOg60TYcZlSdeo4w6zfcYbkyjkhZ",
 }
 
 def download_from_gdrive(file_id: str, dest_path: Path):
