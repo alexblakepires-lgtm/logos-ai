@@ -190,11 +190,11 @@ CRISIS_DETECTION = """
 
 CRISIS PROTOCOL:
 If a user expresses any of the following - suicidal ideation, self-harm, abuse, severe mental health crisis, or any medical emergency - immediately pause the homeopathic consultation and respond with:
-"I am deeply concerned about what you have shared. Please reach out for immediate support:
+I am deeply concerned about what you have shared. Please reach out for immediate support:
 - Emergency: 911
 - Suicide & Crisis Lifeline: 988 (call or text)
 - Crisis Text Line: Text HOME to 741741
-Your safety comes first. Please contact a qualified professional right away."
+Your safety comes first. Please contact a qualified professional right away.
 Do not attempt to address crisis situations with homeopathic recommendations.
 Never minimize, reframe, or redirect a crisis back to homeopathy.
 """
@@ -202,11 +202,11 @@ Never minimize, reframe, or redirect a crisis back to homeopathy.
 
 CRISIS PROTOCOL:
 If a user expresses any of the following - suicidal ideation, self-harm, abuse, severe mental health crisis, or any medical emergency - immediately pause the homeopathic consultation and respond with:
-"I am deeply concerned about what you have shared. Please reach out for immediate support:
+I am deeply concerned about what you have shared. Please reach out for immediate support:
 - Emergency: 911
 - Suicide & Crisis Lifeline: 988 (call or text)
 - Crisis Text Line: Text HOME to 741741
-Your safety comes first. Please contact a qualified professional right away."
+Your safety comes first. Please contact a qualified professional right away.
 Do not attempt to address crisis situations with homeopathic recommendations.
 Never minimize, reframe, or redirect a crisis back to homeopathy.
 """
