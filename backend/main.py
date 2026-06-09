@@ -120,6 +120,8 @@ PDF_PATHS     = [
     BASE_DIR / "data" / "PHATAK_MATERIA_MEDICA.txt",
 ]
 DB_PATH       = str(BASE_DIR / "data" / "chroma_db")
+CHROMA_VERSION  = "v2"
+VERSION_FILE    = BASE_DIR / "data" / "chroma_version.txt"
 FRONT_DIR     = str(BASE_DIR / "frontend")
 MEMORY_FILE   = BASE_DIR / "data" / "conversations.json"
 OLLAMA_URL    = "http://localhost:11434/api/chat"
@@ -260,16 +262,27 @@ async def build_database():
         if not dest.exists():
             download_from_gdrive(file_id, dest)
 
-    if Path(DB_PATH).exists():
+    needs_rebuild = (
+        not Path(DB_PATH).exists() or
+        not VERSION_FILE.exists() or
+        VERSION_FILE.read_text().strip() != CHROMA_VERSION
+    )
+
+    if not needs_rebuild:
         rag.load()
     else:
+        import shutil, zipfile
+        if Path(DB_PATH).exists():
+            print("🗑️ Removing old ChromaDB...")
+            shutil.rmtree(DB_PATH)
         chroma_zip = BASE_DIR / "data" / "chroma_db.zip"
-        if not chroma_zip.exists():
-            download_from_gdrive("1SFODYYbLT1vlEEysCad4gV1Zg26hQrxI", chroma_zip)
-        import zipfile
+        if chroma_zip.exists():
+            chroma_zip.unlink()
+        download_from_gdrive("1SFODYYbLT1vlEEysCad4gV1Zg26hQrxI", chroma_zip)
         print("📦 Extracting ChromaDB...")
         with zipfile.ZipFile(chroma_zip, 'r') as z:
             z.extractall(BASE_DIR / "data")
+        VERSION_FILE.write_text(CHROMA_VERSION)
         print("✅ ChromaDB extracted")
         rag.load()
 
