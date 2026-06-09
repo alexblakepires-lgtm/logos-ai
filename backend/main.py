@@ -228,7 +228,7 @@ def download_from_gdrive(file_id: str, dest_path: Path):
     print(f"⬇️  Downloading {dest_path.name} from Google Drive...")
     dest_path.parent.mkdir(parents=True, exist_ok=True)
     url = f"https://drive.google.com/uc?id={file_id}"
-    gdown.download(url, str(dest_path), quiet=False, fuzzy=True)
+    gdown.download(url, str(dest_path), quiet=False)
     print(f"✅ Downloaded {dest_path.name}")
 
 
