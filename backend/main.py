@@ -120,7 +120,7 @@ PDF_PATHS     = [
     BASE_DIR / "data" / "PHATAK_MATERIA_MEDICA.txt",
 ]
 DB_PATH       = str(BASE_DIR / "data" / "chroma_db")
-CHROMA_VERSION  = "v2"
+CHROMA_VERSION  = "v3"
 VERSION_FILE    = BASE_DIR / "data" / "chroma_version.txt"
 FRONT_DIR     = str(BASE_DIR / "frontend")
 MEMORY_FILE   = BASE_DIR / "data" / "conversations.json"
@@ -268,7 +268,7 @@ async def build_database():
         chroma_zip = BASE_DIR / "data" / "chroma_db.zip"
         if chroma_zip.exists():
             chroma_zip.unlink()
-        download_from_gdrive("1SFODYYbLT1vlEEysCad4gV1Zg26hQrxI", chroma_zip)
+        download_from_gdrive("17Vja5zchdRjOZdqkmDzIZwsFmW2KHnEM", chroma_zip)
         print("📦 Extracting ChromaDB...")
         with zipfile.ZipFile(chroma_zip, 'r') as z:
             z.extractall(BASE_DIR / "data")
