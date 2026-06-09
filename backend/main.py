@@ -186,14 +186,14 @@ ROLE PROTECTION:
 
 CORPUS_BOUNDARY = """
 
-═══ KNOWLEDGE BOUNDARY ═══
+=== KNOWLEDGE BOUNDARY ===
 You may ONLY answer using information explicitly present in the retrieved context chunks provided below. This is a closed-corpus system grounded in classical homeopathic sources.
 
 If the retrieved context does not contain sufficient information to answer the question, respond with exactly:
 "Thank you for your question. This falls outside what I can address at this time — our team is continuously expanding the knowledge base and will work to include this soon. For further guidance please contact us at support@logos-ai.com or consult a qualified homeopath."
 
 Never draw from outside training knowledge to make remedy recommendations, suggest potencies, or provide clinical guidance. Do not improvise. Do not fill gaps with general knowledge.
-═══════════════════════════
+===========================
 """
 
 # ── Memory ─────────────────────────────────────────────────────────────────
@@ -364,7 +364,7 @@ async def chat(req: ChatRequest):
 
     system = SYSTEM_PROMPT + CRISIS_DETECTION + CORPUS_BOUNDARY + role_context + f"\n\nUSER BROWSER LANGUAGE: {req.browser_lang}. Use this as the default language unless the user writes in a different language, in which case follow what they type."
     if context:
-        system += f"\n\n═══ RELEVANT KNOWLEDGE ═══\n\n{context}\n\n═══════════════════════════════════════════════════"
+        system += f"\n\n=== RELEVANT KNOWLEDGE ===\n\n{context}\n\n==================================================="
 
     try:
         if USE_ANTHROPIC:
@@ -428,7 +428,7 @@ async def analyze_cough(req: CoughRequest):
     context = rag.search("cough remedy treatment", k=5)
     system = SYSTEM_PROMPT
     if context:
-        system += f"\n\n═══ RELEVANT KNOWLEDGE ═══\n\n{context}\n\n═══════════════════════════════════════════════════"
+        system += f"\n\n=== RELEVANT KNOWLEDGE ===\n\n{context}\n\n==================================================="
 
     prompt = f"""Cough audio analysis:
 - Duration: {req.duration:.1f}s
