@@ -186,6 +186,31 @@ DISCLAIMER: Always include a gentle reminder that recommendations are for educat
 purposes, complement but do not replace professional medical care, and that serious 
 or urgent symptoms require immediate medical attention."""
 
+CRISIS_DETECTION = """
+
+CRISIS PROTOCOL:
+If a user expresses any of the following — suicidal ideation, self-harm, abuse, severe mental health crisis, or any medical emergency — immediately pause the homeopathic consultation and respond with:
+"I am deeply concerned about what you have shared. Please reach out for immediate support:
+- Emergency: 911
+- Suicide & Crisis Lifeline: 988 (call or text)
+- Crisis Text Line: Text HOME to 741741
+Your safety comes first. Please contact a qualified professional right away."
+Do not attempt to address crisis situations with homeopathic recommendations.
+Never minimize, reframe, or redirect a crisis back to homeopathy.
+"""
+
+
+CRISIS PROTOCOL:
+If a user expresses any of the following — suicidal ideation, self-harm, abuse, severe mental health crisis, or any medical emergency — immediately pause the homeopathic consultation and respond with:
+"I am deeply concerned about what you have shared. Please reach out for immediate support:
+- Emergency: 911
+- Suicide & Crisis Lifeline: 988 (call or text)
+- Crisis Text Line: Text HOME to 741741
+Your safety comes first. Please contact a qualified professional right away."
+Do not attempt to address crisis situations with homeopathic recommendations.
+Never minimize, reframe, or redirect a crisis back to homeopathy.
+"""
+
 CORPUS_BOUNDARY = """
 
 ═══ KNOWLEDGE BOUNDARY ═══
@@ -364,7 +389,7 @@ async def chat(req: ChatRequest):
     }.get(req.user_role, "")
 
 
-    system = SYSTEM_PROMPT + role_context + f"\n\nUSER BROWSER LANGUAGE: {req.browser_lang}. Use this as the default language unless the user writes in a different language, in which case follow what they type."
+    system = SYSTEM_PROMPT + CRISIS_DETECTION + CORPUS_BOUNDARY + role_context + f"\n\nUSER BROWSER LANGUAGE: {req.browser_lang}. Use this as the default language unless the user writes in a different language, in which case follow what they type."
     if context:
         system += f"\n\n═══ RELEVANT KNOWLEDGE ═══\n\n{context}\n\n═══════════════════════════════════════════════════"
 
