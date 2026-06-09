@@ -224,33 +224,11 @@ GDRIVE_FILES = {
 }
 
 def download_from_gdrive(file_id: str, dest_path: Path):
-    import requests, re
+    import gdown
     print(f"⬇️  Downloading {dest_path.name} from Google Drive...")
-    url = f"https://drive.google.com/uc?export=download&id={file_id}"
-    session = requests.Session()
-    response = session.get(url, stream=True)
-
-    content_type = response.headers.get("Content-Type", "")
-    if "text/html" in content_type:
-        # Try cookie token first
-        token = next(
-            (v for k, v in response.cookies.items() if k.startswith("download_warning")),
-            None
-        )
-        if token:
-            response = session.get(url, params={"confirm": token}, stream=True)
-        else:
-            # Parse confirm URL from HTML body (new Drive flow)
-            match = re.search(r'href="(/uc\?export=download[^"]+confirm=[^"]+)"', response.text)
-            if match:
-                confirm_url = "https://drive.google.com" + match.group(1).replace("&amp;", "&")
-                response = session.get(confirm_url, stream=True)
-
     dest_path.parent.mkdir(parents=True, exist_ok=True)
-    with open(dest_path, "wb") as f:
-        for chunk in response.iter_content(32768):
-            if chunk:
-                f.write(chunk)
+    url = f"https://drive.google.com/uc?id={file_id}"
+    gdown.download(url, str(dest_path), quiet=False, fuzzy=True)
     print(f"✅ Downloaded {dest_path.name}")
 
 
