@@ -563,12 +563,12 @@ function App() {
     };
 
   const getGreeting = (auth) => {
-  if (!auth || !auth.role) return 'Welcome. I am Logos, your Homeopathic Assistant.\n\nDescribe your symptoms for **remedy recommendations**, explore specific remedies.\n\nHow may I help you today?';
+  if (!auth || !auth.role) return 'Welcome. I am Logos, your personalized Homeopathy Consultant. Describe your symptoms to explore individualized remedy suggestions. I can also teach you about specific remedies.\n\nHow may I assist you today?';
   if (auth.role === 'admin') return 'Welcome back, Alexandre. 🌿\n\nYou have full admin access. How can I assist you today?';
   if (auth.role === 'co_founder') return 'Welcome back, Lua. 🌿\n\nLogos is ready — heart and soul. How may I assist you today?';
   const first = (auth.full_name || '').trim().split(/\s+/)[0] || '';
   if (auth.role === 'practitioner') return `Welcome${first ? ', ' + first : ''}. I am Logos, your homeopathic companion. 🌿\n\nHow may I assist your practice today?`;
-  return `Welcome${first ? ', ' + first : ''}. I am Logos, your Homeopathic Assistant.\n\nDescribe your symptoms for **remedy recommendations**, explore specific remedies.\n\nHow may I help you today?`;
+  return `Welcome${first ? ', ' + first : ''}. I am Logos, your personalized Homeopathy Consultant.\n\nDescribe your symptoms to explore individualized remedy suggestions. I can also teach you about specific remedies.\n\nHow may I assist you today?`;
 };
 
 const [msgs, setMsgs] = useState([{ role:'assistant', content: getGreeting(auth) }]);

@@ -265,7 +265,7 @@ async def build_database():
     else:
         chroma_zip = BASE_DIR / "data" / "chroma_db.zip"
         if not chroma_zip.exists():
-            download_from_gdrive("17BMtg7Mt89FU43dvqj8x4Ca0cP-CVCxz", chroma_zip)
+            download_from_gdrive("1SFODYYbLT1vlEEysCad4gV1Zg26hQrxI", chroma_zip)
         import zipfile
         print("📦 Extracting ChromaDB...")
         with zipfile.ZipFile(chroma_zip, 'r') as z:
