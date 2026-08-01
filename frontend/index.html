@@ -592,7 +592,9 @@ useEffect(() => {
 const fetchConversations = useCallback(async () => {
   if (!auth?.token || auth?.email === 'guest') return;
   try {
-    const res = await fetch(`/api/conversations?token=${auth.token}`);
+    const res = await fetch('/api/conversations', {
+  headers: { 'Authorization': `Bearer ${auth.token}` }
+});
     if (!res.ok) return;
     const data = await res.json();
     setConversations(data.conversations || []);
@@ -608,7 +610,9 @@ useEffect(() => {
 
 const loadConversation = async (conv) => {
   try {
-    const res = await fetch(`/api/conversations/${conv.id}/messages?token=${auth.token}`);
+    const res = await fetch(`/api/conversations/${conv.id}/messages`, {
+  headers: { 'Authorization': `Bearer ${auth.token}` }
+});
     const data = await res.json();
     const loaded = data.messages.map(m => ({ role: m.role, content: m.content }));
     setMsgs([{ role:'assistant', content: getGreeting(auth) }, ...loaded]);
@@ -740,7 +744,9 @@ const acceptDisclaimer = async () => {
   if (auth?.disclaimerAccepted) return;
   const checkDisclaimer = async () => {
     try {
-      const res = await fetch(`/api/profile/disclaimer?token=${auth.token}`);
+      const res = await fetch('/api/profile/disclaimer', {
+  headers: { 'Authorization': `Bearer ${auth.token}` }
+});
       const data = await res.json();
       if (!data.accepted) setShowDisclaimer(true);
       else {
