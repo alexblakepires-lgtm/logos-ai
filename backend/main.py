@@ -7,7 +7,7 @@ from pathlib import Path
 from datetime import datetime, timedelta, timezone
 from contextlib import asynccontextmanager
 
-from fastapi import FastAPI, HTTPException, Request, BackgroundTasks
+from fastapi import FastAPI, HTTPException, Request, BackgroundTasks, Header
 from fastapi.staticfiles import StaticFiles
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse
@@ -668,7 +668,9 @@ async def create_conversation(request: Request, background_tasks: BackgroundTask
         raise HTTPException(status_code=400, detail=str(e))
 
 @app.get("/api/conversations")
-async def get_conversations(token: str = ""):
+async def get_conversations(token: str = "", authorization: str = Header(None)):
+    if authorization and authorization.startswith("Bearer "):
+        token = authorization[7:]
     if not token:
         return {"conversations": []}
     try:
@@ -682,8 +684,9 @@ async def get_conversations(token: str = ""):
         return {"conversations": []}
 
 @app.get("/api/conversations/{conversation_id}/messages")
-async def get_messages(conversation_id: str, token: str = ""):
-
+async def get_messages(conversation_id: str, token: str = "", authorization: str = Header(None)):
+    if authorization and authorization.startswith("Bearer "):
+        token = authorization[7:]
     try:
         user = supabase.auth.get_user(token)
         if not user.user:
@@ -694,7 +697,9 @@ async def get_messages(conversation_id: str, token: str = ""):
         raise HTTPException(status_code=400, detail=str(e))
 
 @app.get("/api/profile/disclaimer")
-async def get_disclaimer(token: str = ""):
+async def get_disclaimer(token: str = "", authorization: str = Header(None)):
+    if authorization and authorization.startswith("Bearer "):
+        token = authorization[7:]
     try:
         user = supabase.auth.get_user(token)
         if not user.user:
