@@ -3,10 +3,12 @@ import json
 import asyncio
 import httpx
 import stripe
+import sys
+print(f"🐍 Python {sys.version}")
 from pathlib import Path
 from datetime import datetime, timedelta, timezone
 from contextlib import asynccontextmanager
-
+from typing import Optional
 from fastapi import FastAPI, HTTPException, Request, BackgroundTasks, Header
 from fastapi.staticfiles import StaticFiles
 from fastapi.middleware.cors import CORSMiddleware
@@ -37,6 +39,7 @@ PRICE_YEARLY = 9999          # $99.99 / year, in cents
 SUPABASE_URL = os.getenv("SUPABASE_URL", "")
 SUPABASE_ANON_KEY = os.getenv("SUPABASE_ANON_KEY", "")
 supabase: Client = create_client(SUPABASE_URL, SUPABASE_ANON_KEY)
+FRONTEND_URL = os.getenv("FRONTEND_URL", "https://logos-ai-production.up.railway.app")
 
 # Admin client for backend operations
 SUPABASE_SERVICE_KEY = os.getenv("SUPABASE_SERVICE_ROLE_KEY", "")
@@ -66,7 +69,7 @@ def profile_db(token: str) -> Client:
 def get_user_role(user_id: str) -> str:
     try:
         result = supabase_admin.table("profiles").select("role").eq("id", user_id).single().execute()
-        return result.data.get("role", "client") if result.data else "client"
+        return str(result.data.get("role", "client")) if result.data else "client"
     except Exception as e:
         print(f"⚠️ Role fetch error: {e}")
         return "client"
@@ -74,7 +77,7 @@ def get_user_role(user_id: str) -> str:
 def get_full_name(user_id: str) -> str:
     try:
         result = supabase_admin.table("profiles").select("full_name").eq("id", user_id).single().execute()
-        return (result.data.get("full_name") or "") if result.data else ""
+        return str(result.data.get("role", "client")) if result.data else "client"
     except Exception as e:
         print(f"⚠️ Name fetch error: {e}")
         return ""
@@ -336,6 +339,21 @@ class SignInRequest(BaseModel):
     email: str
     password: str
 
+class RefreshRequest(BaseModel):
+    refresh_token: str
+
+class SignOutRequest(BaseModel):
+    refresh_token: Optional[str] = None
+
+class ForgotPasswordRequest(BaseModel):
+    email: str
+
+class ResetPasswordRequest(BaseModel):
+    access_token: str
+    refresh_token: str
+    new_password: str
+
+    
 # ── Routes ─────────────────────────────────────────────────────────────────
 @app.get("/api/health")
 async def health():
@@ -439,7 +457,7 @@ async def chat(req: ChatRequest):
 @app.post("/api/analyze-cough")
 async def analyze_cough(req: CoughRequest):
     context = rag.search("cough remedy treatment", k=5)
-    system = SYSTEM_PROMPT
+    system = SYSTEM_PROMPT + CRISIS_DETECTION + CORPUS_BOUNDARY
     if context:
         system += f"\n\n=== RELEVANT KNOWLEDGE ===\n\n{context}\n\n==================================================="
 
@@ -502,28 +520,105 @@ async def signup(req: SignUpRequest):
 async def signin(req: SignInRequest):
     try:
         res = supabase.auth.sign_in_with_password({"email": req.email, "password": req.password})
+        if not res.session or not res.user:
+            raise HTTPException(status_code=401, detail="Invalid credentials")
+
         role = get_user_role(res.user.id)
         full_name = get_full_name(res.user.id)
         trial = get_trial_info(res.user.id)  # starts the trial on first sign-in
+
         return {
             "access_token": res.session.access_token,
+            "refresh_token": res.session.refresh_token,
+            "expires_at": res.session.expires_at,
             "user": res.user.email,
             "role": role,
             "full_name": full_name,
             "trial_started_at": trial["trial_started_at"],
-            "subscribed": trial["subscribed"]
+            "subscribed": trial["subscribed"],
         }
+    except HTTPException:
+        raise
     except Exception as e:
         raise HTTPException(status_code=400, detail=str(e))
+
+@app.post("/api/auth/refresh")
+async def refresh_token(req: RefreshRequest):
+    url = f"{SUPABASE_URL}/auth/v1/token?grant_type=refresh_token"
+    headers = {"apikey": SUPABASE_ANON_KEY, "Content-Type": "application/json"}
+    try:
+        async with httpx.AsyncClient(timeout=10.0) as client:
+            r = await client.post(url, headers=headers, json={"refresh_token": req.refresh_token})
+    except httpx.RequestError as e:
+        raise HTTPException(status_code=503, detail=f"Auth service unreachable: {e}")
+
+    if r.status_code != 200:
+        raise HTTPException(status_code=401, detail="Session expired. Please sign in again.")
+
+    data = r.json()
+    user = data.get("user") or {}
+    user_id = user.get("id")
+
+    payload = {
+        "access_token": data["access_token"],
+        "refresh_token": data["refresh_token"],
+        "expires_at": data.get("expires_at"),
+        "user": user.get("email"),
+    }
+
+    if user_id:
+        try:
+            trial = get_trial_info(user_id)
+            payload.update({
+                "role": get_user_role(user_id),
+                "full_name": get_full_name(user_id),
+                "trial_started_at": trial["trial_started_at"],
+                "subscribed": trial["subscribed"],
+            })
+        except Exception as e:
+            print(f"⚠️ profile refresh error: {e}")
+    return payload
 
 @app.post("/api/auth/signout")
-async def signout():
+async def signout(req: SignOutRequest):
+    if req.refresh_token:
+        try:
+            async with httpx.AsyncClient(timeout=10.0) as client:
+                await client.post(
+                    f"{SUPABASE_URL}/auth/v1/logout",
+                    headers={
+                        "apikey": SUPABASE_ANON_KEY,
+                        "Authorization": f"Bearer {req.refresh_token}",
+                    },
+                )
+        except Exception as e:
+            print(f"⚠️ signout error: {e}")
+    return {"message": "Signed out"}
+@app.post("/api/auth/forgot-password")
+async def forgot_password(req: ForgotPasswordRequest):
     try:
-        supabase.auth.sign_out()
-        return {"message": "Signed out"}
+        supabase.auth.reset_password_email(
+            req.email,
+            {"redirect_to": FRONTEND_URL}
+        )
+        # Always return success regardless of whether the email exists —
+        # don't leak which emails are registered
+        return {"message": "If that email is registered, a reset link has been sent."}
+    except Exception as e:
+        print(f"⚠️ forgot-password error: {e}")
+        return {"message": "If that email is registered, a reset link has been sent."}
+
+
+@app.post("/api/auth/reset-password")
+async def reset_password(req: ResetPasswordRequest):
+    try:
+        # req.access_token comes from the URL fragment the recovery email links to
+        supabase.auth.set_session(req.access_token, req.refresh_token)
+        supabase.auth.update_user({"password": req.new_password})
+        return {"message": "Password updated. You can now sign in."}
     except Exception as e:
         raise HTTPException(status_code=400, detail=str(e))
-
+    
 # ── Stripe billing ───────────────────────────────────────────────────────────
 @app.post("/api/create-checkout-session")
 async def create_checkout_session(request: Request):
