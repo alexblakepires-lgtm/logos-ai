@@ -515,6 +515,17 @@ function App() {
   const [guestMsgs, setGuestMsgs] = useState(() => {
     try { return parseInt(localStorage.getItem('logos_guest_msgs') || '0', 10) || 0; } catch { return 0; }
   });
+  const [forgotMode, setForgotMode] = useState(false);
+  const [forgotEmail, setForgotEmail] = useState('');
+  const [forgotLoading, setForgotLoading] = useState(false);
+  const [forgotMsg, setForgotMsg] = useState('');
+
+  const [recoverySession, setRecoverySession] = useState(null);
+  const [newPassword, setNewPassword] = useState('');
+  const [newPasswordConfirm, setNewPasswordConfirm] = useState('');
+  const [resetLoading, setResetLoading] = useState(false);
+  const [resetMsg, setResetMsg] = useState('');
+  const [resetError, setResetError] = useState('');
   useEffect(() => {
     fetch('/api/health').then(r => r.json()).then(d => setTrialConfig({
       enforcement: !!d.trial_enforcement,
@@ -522,6 +533,18 @@ function App() {
       trialDays: d.trial_days || 3,
     })).catch(() => {});
   }, []);
+  useEffect(() => {
+  const hash = window.location.hash;
+  if (hash && hash.includes('type=recovery')) {
+    const params = new URLSearchParams(hash.substring(1));
+    const access_token = params.get('access_token');
+    const refresh_token = params.get('refresh_token');
+    if (access_token && refresh_token) {
+      setRecoverySession({ access_token, refresh_token });
+      window.history.replaceState(null, '', window.location.pathname);
+    }
+  }
+}, []);
 
 
   const handleAuth = async () => {
@@ -551,7 +574,16 @@ function App() {
       });
       const signInData = await signInRes.json();
       if (signInData.detail) throw new Error(signInData.detail);
-      const authData = { token: signInData.access_token, email: signInData.user, role: signInData.role || 'client', full_name: signInData.full_name || '', trial_started_at: signInData.trial_started_at || null, subscribed: !!signInData.subscribed };
+      const authData = {
+        token: signInData.access_token,
+        refresh_token: signInData.refresh_token,
+        expires_at: signInData.expires_at,
+        email: signInData.user,
+        role: signInData.role || 'client',
+        full_name: signInData.full_name || '',
+        trial_started_at: signInData.trial_started_at || null,
+        subscribed: !!signInData.subscribed
+      };
       localStorage.setItem('logos_auth', JSON.stringify(authData));
       setAuth(authData);
       }
@@ -561,6 +593,48 @@ function App() {
       setAuthLoading(false);
     }
     };
+    const handleForgotPassword = async () => {
+  setForgotLoading(true); setForgotMsg('');
+  try {
+    const res = await fetch('/api/auth/forgot-password', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email: forgotEmail })
+    });
+    const data = await res.json();
+    setForgotMsg(data.message || 'If that email is registered, a reset link has been sent.');
+  } catch (e) {
+    setForgotMsg('Something went wrong. Please try again.');
+  } finally {
+    setForgotLoading(false);
+  }
+};
+
+const handleResetPassword = async () => {
+  setResetError('');
+  if (newPassword.length < 6) { setResetError('Password must be at least 6 characters.'); return; }
+  if (newPassword !== newPasswordConfirm) { setResetError('Passwords do not match.'); return; }
+  setResetLoading(true);
+  try {
+    const res = await fetch('/api/auth/reset-password', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        access_token: recoverySession.access_token,
+        refresh_token: recoverySession.refresh_token,
+        new_password: newPassword
+      })
+    });
+    const data = await res.json();
+    if (data.detail) throw new Error(data.detail);
+    setResetMsg('Password updated. You can sign in now.');
+    setRecoverySession(null);
+  } catch (e) {
+    setResetError(e.message);
+  } finally {
+    setResetLoading(false);
+  }
+};
 
   const getGreeting = (auth) => {
   if (!auth || !auth.role) return 'Welcome. I am Logos, your personalized Homeopathy Consultant. Describe your symptoms to explore individualized remedy suggestions. I can also teach you about specific remedies.\n\nHow may I assist you today?';
@@ -588,18 +662,83 @@ const [micError, setMicError] = useState('');
 useEffect(() => {
   setMsgs([{ role:'assistant', content: getGreeting(auth) }]);
 }, [auth]);
+const refreshPromiseRef = useRef(null);
+
+const endSession = useCallback((msg) => {
+  try { localStorage.removeItem('logos_auth'); } catch {}
+  setAuth(null);
+  setConversations([]);
+  if (msg) setError(msg);
+}, []);
+
+const ensureFreshToken = useCallback(async () => {
+  const current = auth;
+  if (!current?.token) return null;
+  // Sessions saved before this fix have no refresh token — use as-is until it dies.
+  if (!current.refresh_token || !current.expires_at) return current.token;
+
+  const now = Math.floor(Date.now() / 1000);
+  if (current.expires_at - now > 60) return current.token;
+
+  // Supabase rotates refresh tokens on every use, so concurrent refreshes
+  // would invalidate each other. Everyone waits on the same one.
+  if (!refreshPromiseRef.current) {
+    refreshPromiseRef.current = (async () => {
+      try {
+        const res = await fetch('/api/auth/refresh', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ refresh_token: current.refresh_token })
+        });
+        if (!res.ok) throw new Error('refresh failed');
+        const d = await res.json();
+        const updated = {
+          ...current,
+          token: d.access_token,
+          refresh_token: d.refresh_token,
+          expires_at: d.expires_at,
+          role: d.role ?? current.role,
+          full_name: d.full_name ?? current.full_name,
+          trial_started_at: d.trial_started_at ?? current.trial_started_at,
+          subscribed: d.subscribed ?? current.subscribed
+        };
+        localStorage.setItem('logos_auth', JSON.stringify(updated));
+        setAuth(updated);
+        return updated.token;
+      } catch {
+        endSession('Your session expired. Please sign in again.');
+        return null;
+      } finally {
+        refreshPromiseRef.current = null;
+      }
+    })();
+  }
+  return refreshPromiseRef.current;
+}, [auth, endSession]);
 
 const fetchConversations = useCallback(async () => {
   if (!auth?.token || auth?.email === 'guest') return;
+  const token = await ensureFreshToken();
+  if (!token) return;
   try {
     const res = await fetch('/api/conversations', {
-  headers: { 'Authorization': `Bearer ${auth.token}` }
-});
-    if (!res.ok) return;
+      headers: { 'Authorization': `Bearer ${token}` }
+    });
+    if (res.status === 401) {
+      endSession('Your session expired. Please sign in again.');
+      return;
+    }
+    if (!res.ok) {
+      setError('Could not load your conversations. Please try again.');
+      return;
+    }
     const data = await res.json();
     setConversations(data.conversations || []);
-  } catch(e) { console.error(e); }
-}, [auth]);
+  } catch (e) {
+    console.error(e);
+    setError('Could not load your conversations. Please try again.');
+  }
+}, [auth, ensureFreshToken, endSession]);
 
 useEffect(() => {
   if (!auth?.token) return;
@@ -949,6 +1088,13 @@ const loginScreen = (
               onKeyDown={e=>{ if(e.key==='Enter') handleAuth(); }}
               style={{width:'100%', padding:'12px 15px', border:'1px solid var(--border)', borderRadius:'8px', fontFamily:'Josefin Sans, sans-serif', fontSize:'13px', outline:'none', boxSizing:'border-box'}}
             />
+            {authMode === 'signin' && (
+  <div style={{textAlign:'right', fontSize:'11px'}}>
+    <span onClick={()=>{ setForgotMode(true); setForgotMsg(''); }} style={{color:'var(--muted)', cursor:'pointer', textDecoration:'underline'}}>
+      Forgot password?
+    </span>
+  </div>
+)}
             {authError && <div style={{fontSize:'12px', color: authError.includes('created') ? 'var(--sage)' : 'var(--rust)', padding:'8px 12px', background: authError.includes('created') ? 'rgba(90,122,92,0.08)' : 'rgba(139,58,42,0.08)', borderRadius:'6px'}}>{authError}</div>}
             <button
               onClick={handleAuth}
@@ -973,7 +1119,114 @@ const loginScreen = (
       </div>
     </div>
   );
-  if (!auth) return loginScreen;
+  const forgotPasswordScreen = (
+  <div className="app">
+    <header className="header">
+      <div className="header-inner">
+        <div className="brand-icon">🌿</div>
+        <div>
+          <div className="brand-name" translate="no">Logos</div>
+          <div className="brand-sub">Remedy Database</div>
+        </div>
+      </div>
+    </header>
+    <div style={{flex:1, display:'flex', alignItems:'center', justifyContent:'center', padding:'20px'}}>
+      <div style={{background:'#fff', border:'1px solid var(--border)', borderRadius:'16px', padding:'40px', maxWidth:'400px', width:'100%', boxShadow:'0 4px 24px rgba(44,74,46,0.08)'}}>
+        <div style={{textAlign:'center', marginBottom:'28px'}}>
+          <div style={{fontSize:'32px', marginBottom:'8px'}}>🌿</div>
+          <div style={{fontFamily:'Cormorant Garamond, serif', fontSize:'24px', color:'var(--forest)', fontWeight:300}}>Reset Password</div>
+          <div style={{fontSize:'11px', letterSpacing:'2px', color:'var(--muted)', textTransform:'uppercase', marginTop:'4px'}}>We'll email you a link</div>
+        </div>
+        <div style={{display:'flex', flexDirection:'column', gap:'12px'}}>
+          <input
+            type="email"
+            placeholder="Email address"
+            value={forgotEmail}
+            onChange={e=>setForgotEmail(e.target.value)}
+            onKeyDown={e=>{ if(e.key==='Enter') handleForgotPassword(); }}
+            style={{width:'100%', padding:'12px 15px', border:'1px solid var(--border)', borderRadius:'8px', fontFamily:'Josefin Sans, sans-serif', fontSize:'13px', outline:'none', boxSizing:'border-box'}}
+          />
+          {forgotMsg && <div style={{fontSize:'12px', color:'var(--sage)', padding:'8px 12px', background:'rgba(90,122,92,0.08)', borderRadius:'6px'}}>{forgotMsg}</div>}
+          <button
+            onClick={handleForgotPassword}
+            disabled={forgotLoading || !forgotEmail}
+            style={{width:'100%', padding:'13px', background:'var(--sage)', color:'var(--cream)', border:'none', borderRadius:'8px', cursor:'pointer', fontFamily:'Josefin Sans, sans-serif', fontSize:'11px', letterSpacing:'2px', textTransform:'uppercase', opacity: forgotLoading ? 0.7 : 1}}
+          >
+            {forgotLoading ? '…' : 'Send Reset Link'}
+          </button>
+          <div style={{textAlign:'center', fontSize:'12px', color:'var(--muted)'}}>
+            <span onClick={()=>{ setForgotMode(false); setForgotMsg(''); }} style={{color:'var(--forest)', cursor:'pointer', textDecoration:'underline'}}>
+              Back to sign in
+            </span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+);
+
+const resetPasswordScreen = (
+  <div className="app">
+    <header className="header">
+      <div className="header-inner">
+        <div className="brand-icon">🌿</div>
+        <div>
+          <div className="brand-name" translate="no">Logos</div>
+          <div className="brand-sub">Remedy Database</div>
+        </div>
+      </div>
+    </header>
+    <div style={{flex:1, display:'flex', alignItems:'center', justifyContent:'center', padding:'20px'}}>
+      <div style={{background:'#fff', border:'1px solid var(--border)', borderRadius:'16px', padding:'40px', maxWidth:'400px', width:'100%', boxShadow:'0 4px 24px rgba(44,74,46,0.08)'}}>
+        <div style={{textAlign:'center', marginBottom:'28px'}}>
+          <div style={{fontSize:'32px', marginBottom:'8px'}}>🌿</div>
+          <div style={{fontFamily:'Cormorant Garamond, serif', fontSize:'24px', color:'var(--forest)', fontWeight:300}}>New Password</div>
+        </div>
+        {resetMsg ? (
+          <div style={{display:'flex', flexDirection:'column', gap:'12px'}}>
+            <div style={{fontSize:'12px', color:'var(--sage)', padding:'8px 12px', background:'rgba(90,122,92,0.08)', borderRadius:'6px', textAlign:'center'}}>{resetMsg}</div>
+            <button
+              onClick={()=>{ setRecoverySession(null); setResetMsg(''); }}
+              style={{width:'100%', padding:'13px', background:'var(--sage)', color:'var(--cream)', border:'none', borderRadius:'8px', cursor:'pointer', fontFamily:'Josefin Sans, sans-serif', fontSize:'11px', letterSpacing:'2px', textTransform:'uppercase'}}
+            >
+              Go to Sign In
+            </button>
+          </div>
+        ) : (
+          <div style={{display:'flex', flexDirection:'column', gap:'12px'}}>
+            <input
+              type="password"
+              placeholder="New password"
+              value={newPassword}
+              onChange={e=>setNewPassword(e.target.value)}
+              style={{width:'100%', padding:'12px 15px', border:'1px solid var(--border)', borderRadius:'8px', fontFamily:'Josefin Sans, sans-serif', fontSize:'13px', outline:'none', boxSizing:'border-box'}}
+            />
+            <input
+              type="password"
+              placeholder="Confirm new password"
+              value={newPasswordConfirm}
+              onChange={e=>setNewPasswordConfirm(e.target.value)}
+              onKeyDown={e=>{ if(e.key==='Enter') handleResetPassword(); }}
+              style={{width:'100%', padding:'12px 15px', border:'1px solid var(--border)', borderRadius:'8px', fontFamily:'Josefin Sans, sans-serif', fontSize:'13px', outline:'none', boxSizing:'border-box'}}
+            />
+            {resetError && <div style={{fontSize:'12px', color:'var(--rust)', padding:'8px 12px', background:'rgba(139,58,42,0.08)', borderRadius:'6px'}}>{resetError}</div>}
+            <button
+              onClick={handleResetPassword}
+              disabled={resetLoading || !newPassword || !newPasswordConfirm}
+              style={{width:'100%', padding:'13px', background:'var(--sage)', color:'var(--cream)', border:'none', borderRadius:'8px', cursor:'pointer', fontFamily:'Josefin Sans, sans-serif', fontSize:'11px', letterSpacing:'2px', textTransform:'uppercase', opacity: resetLoading ? 0.7 : 1}}
+            >
+              {resetLoading ? '…' : 'Update Password'}
+            </button>
+          </div>
+        )}
+      </div>
+    </div>
+  </div>
+);
+
+if (recoverySession) return resetPasswordScreen;
+if (!auth && forgotMode) return forgotPasswordScreen;
+if (!auth) return loginScreen;
 
   const continueAsGuest = () => {
     const g = { token: null, email: 'guest' };
