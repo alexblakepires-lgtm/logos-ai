@@ -122,6 +122,10 @@ PDF_PATHS     = [
     BASE_DIR / "data" / "KENT_MATERIA_MEDICA.txt",
     BASE_DIR / "data" / "PHATAK_MATERIA_MEDICA.txt",
 ]
+ALLOWED_MURPHY_USER_IDS = {
+    "1c066f3a-745c-4c8d-9239-12bf71c70dad",  # Ale
+    "71f675c3-119f-40d6-ac61-d71b50bb8e4a",  # Lua (primary / oxum.mahina@gmail.com)
+}
 DB_PATH       = str(BASE_DIR / "data" / "chroma_db")
 CHROMA_VERSION  = "v3"
 VERSION_FILE    = BASE_DIR / "data" / "chroma_version.txt"
@@ -368,22 +372,24 @@ async def health():
 
 @app.post("/api/chat")
 async def chat(req: ChatRequest):
-    # Free-trial gate for signed-in users (guests are limited client-side).
-    if TRIAL_ENFORCEMENT and req.user_token:
+    uid = None
+    if req.user_token:
         try:
             user = supabase.auth.get_user(req.user_token)
             uid = user.user.id if user and user.user else None
         except Exception:
             uid = None
-        if uid:
-            info = get_trial_info(uid)
-            if not trial_active(info["trial_started_at"], info["subscribed"]):
-                raise HTTPException(status_code=402, detail="Your free trial has ended")
+
+    # Free-trial gate for signed-in users (guests are limited client-side).
+    if TRIAL_ENFORCEMENT and uid:
+        info = get_trial_info(uid)
+        if not trial_active(info["trial_started_at"], info["subscribed"]):
+            raise HTTPException(status_code=402, detail="Your free trial has ended")
 
     last_user = next(
         (m.content for m in reversed(req.messages) if m.role == "user"), ""
     )
-    context = rag.search(last_user, k=4)
+    context = rag.search(last_user, k=4, allow_murphy=uid in ALLOWED_MURPHY_USER_IDS)
 
     role_context = {
     "admin": "\n\nUSER ROLE: admin (Alexandre Pires, developer and co-creator of Logos). You may speak technically and openly.",
@@ -453,10 +459,9 @@ async def chat(req: ChatRequest):
         raise HTTPException(status_code=500, detail=str(e))
 
 
-
 @app.post("/api/analyze-cough")
 async def analyze_cough(req: CoughRequest):
-    context = rag.search("cough remedy treatment", k=5)
+    context = rag.search("cough remedy treatment", k=5, allow_murphy=False)
     system = SYSTEM_PROMPT + CRISIS_DETECTION + CORPUS_BOUNDARY
     if context:
         system += f"\n\n=== RELEVANT KNOWLEDGE ===\n\n{context}\n\n==================================================="

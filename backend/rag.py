@@ -5,6 +5,8 @@ from langchain_community.vectorstores import Chroma
 from langchain_community.embeddings import HuggingFaceEmbeddings
 from langchain_core.documents import Document
 
+MURPHY_FILENAMES = {"NATURES_MATERIA_MEDICA.txt", "METAREPERTORY.txt"}
+
 class MaterialMedicaRAG:
     def __init__(self, pdf_paths, db_path: str = "../data/chroma_db"):
         self.pdf_paths = pdf_paths if isinstance(pdf_paths, list) else [pdf_paths]
@@ -61,9 +63,13 @@ class MaterialMedicaRAG:
         count = self.vectorstore._collection.count()
         print(f"✅ Loaded {count} chunks from database")
 
-    def search(self, query: str, k: int = 4) -> str:
+    def search(self, query: str, k: int = 4, allow_murphy: bool = False) -> str:
         if not self.vectorstore:
             return ""
-        docs = self.vectorstore.similarity_search(query, k=k)
+        fetch_k = k if allow_murphy else k * 4  # overfetch so filtering doesn't starve real results
+        docs = self.vectorstore.similarity_search(query, k=fetch_k)
+        if not allow_murphy:
+            docs = [d for d in docs if Path(d.metadata.get("source", "")).name not in MURPHY_FILENAMES]
+        docs = docs[:k]
         passages = [doc.page_content.strip() for doc in docs]
         return "\n\n".join(passages)
