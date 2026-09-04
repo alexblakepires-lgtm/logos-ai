@@ -121,13 +121,18 @@ PDF_PATHS     = [
     BASE_DIR / "data" / "METAREPERTORY.txt",
     BASE_DIR / "data" / "KENT_MATERIA_MEDICA.txt",
     BASE_DIR / "data" / "PHATAK_MATERIA_MEDICA.txt",
+    BASE_DIR / "data" / "KENT_REPERTORY.txt",
+    BASE_DIR / "data" / "BOENNINGHAUSEN_POCKET_BOOK.txt",
+    BASE_DIR / "data" / "BOERICKE_MATERIA_MEDICA.txt",
+    BASE_DIR / "data" / "HAHNEMANN_MATERIA_MEDICA_PURA_VOL1.txt",
+    BASE_DIR / "data" / "HAHNEMANN_MATERIA_MEDICA_PURA_VOL2.txt",
 ]
 ALLOWED_MURPHY_USER_IDS = {
     "1c066f3a-745c-4c8d-9239-12bf71c70dad",  # Ale
     "71f675c3-119f-40d6-ac61-d71b50bb8e4a",  # Lua (primary / oxum.mahina@gmail.com)
 }
 DB_PATH       = str(BASE_DIR / "data" / "chroma_db")
-CHROMA_VERSION  = "v3"
+CHROMA_VERSION  = "v4"
 VERSION_FILE    = BASE_DIR / "data" / "chroma_version.txt"
 FRONT_DIR     = str(BASE_DIR / "frontend")
 MEMORY_FILE   = BASE_DIR / "data" / "conversations.json"
@@ -286,7 +291,7 @@ async def build_database():
         chroma_zip = BASE_DIR / "data" / "chroma_db.zip"
         if chroma_zip.exists():
             chroma_zip.unlink()
-        download_from_gdrive("17Vja5zchdRjOZdqkmDzIZwsFmW2KHnEM", chroma_zip)
+        download_from_gdrive("1IFe1pCDbYAdddgbteceba9vXX_WbI1G9", chroma_zip)
         print("📦 Extracting ChromaDB...")
         with zipfile.ZipFile(chroma_zip, 'r') as z:
             z.extractall(BASE_DIR / "data")

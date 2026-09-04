@@ -6,6 +6,7 @@ from langchain_community.embeddings import HuggingFaceEmbeddings
 from langchain_core.documents import Document
 
 MURPHY_FILENAMES = {"NATURES_MATERIA_MEDICA.txt", "METAREPERTORY.txt"}
+DISABLED_FILENAMES = {"BOENNINGHAUSEN_POCKET_BOOK.txt"}  # temporarily excluded, indexed but not served
 
 class MaterialMedicaRAG:
     def __init__(self, pdf_paths, db_path: str = "../data/chroma_db"):
@@ -66,8 +67,9 @@ class MaterialMedicaRAG:
     def search(self, query: str, k: int = 4, allow_murphy: bool = False) -> str:
         if not self.vectorstore:
             return ""
-        fetch_k = k if allow_murphy else k * 4  # overfetch so filtering doesn't starve real results
+        fetch_k = k * 4  # overfetch so filtering doesn't starve real results
         docs = self.vectorstore.similarity_search(query, k=fetch_k)
+        docs = [d for d in docs if Path(d.metadata.get("source", "")).name not in DISABLED_FILENAMES]
         if not allow_murphy:
             docs = [d for d in docs if Path(d.metadata.get("source", "")).name not in MURPHY_FILENAMES]
         docs = docs[:k]
